@@ -5,6 +5,8 @@ AM2320 sensor;
 
 float SensorTemp;
 float SensorHum;
+float Temp;
+float Hum;
 
 void setup() {
     Serial.begin(9600);
@@ -15,15 +17,16 @@ void setup() {
 void getTempHum() {
     if (sensor.measure()) {
         SensorTemp = sensor.getTemperature();
-        Serial.print("Temperature: ");
-        Serial.println(SensorTemp);
+
+       
+
+        
         if (SensorTemp > 27) {
             Serial.println("Dålig andedräkt!!!!");
         }
 
         SensorHum = sensor.getHumidity();
-        Serial.print("Humidity: ");
-        Serial.println(SensorHum);
+        
     } else {
         int errorCode = sensor.getErrorCode();
         switch (errorCode) {
@@ -31,9 +34,13 @@ void getTempHum() {
             case 2: Serial.println("ERR: CRC validation failed."); break;
         }
     }
+    Temp = SensorTemp;
+    Hum = SensorHum;
 }
 
 void loop() {
     getTempHum();
-    delay(500);
+    Serial.print(Temp);
+    Serial.print(Hum);
+    delay(100);
 }
