@@ -3,7 +3,7 @@
 
 AM2320 sensor;
 
-#define NUM_SAMPLES 9
+#define NUM_SAMPLES 10
 float SensorTemp;
 float SensorHum;
 float Temp;
@@ -24,14 +24,30 @@ float calculateAverage(const float Values[NUM_SAMPLES]){ //räkna medelvärde
   return sum / NUM_SAMPLES;
 }
 
-void resetArray(float Array[], int Size){ //reset array
-  
-  if (Array[NUM_SAMPLES] >= NUM_SAMPLES){
-  for (int i = 0; i < Size; i++){
-    Array[i]= 0;
+void shiftArrayRight(float array[], int size){
+  for(int i = size - 1; i > 0; i--){
+    array[i] = array[i - 1];
   }
+}
+
+void resetArray(float Array[]) {
+  int filledCount = 0;
+
+  // Count the number of non-zero elements
+  for (int i = 0; i < NUM_SAMPLES; i++) {
+    if (Array[i] != 0) {
+      filledCount++;
     }
   }
+
+  // Reset only if there are NUM_SAMPLES or more non-zero elements
+  if (filledCount >= NUM_SAMPLES) {
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+      Array[i] = 0;
+      yield();
+    }
+  }
+}
 
 void setup() {
     Serial.begin(9600);
@@ -39,45 +55,69 @@ void setup() {
     delay(5000);
 }
 
-void getTempHum() {
-    if (sensor.measure()) {
-        SensorTemp = sensor.getTemperature();
-        SensorHum = sensor.getHumidity();
 
-        TempArray[currentIndexTemp] = SensorTemp;
-        currentIndexTemp++;
-
-        HumArray[currentIndexHum] = SensorHum;
-        currentIndexHum++;
-
-        
-    }
-          else {
-        int errorCode = sensor.getErrorCode();
-        switch (errorCode) {
-            case 1: Serial.println("ERR: Sensor is offline"); break;
-            case 2: Serial.println("ERR: CRC validation failed."); break;
-        }
-    }
-    Temp = SensorTemp;
-    Hum = SensorHum;
+void getTemp(){
+  if (sensor.measure()){
+    SensorTemp = sensor.getTemperature();
+        TempArray[0] = SensorTemp;
+        Temp = SensorTemp;
+      if (TempArray[0]!= 0){
+        shiftArrayRight(TempArray, NUM_SAMPLES);
+    } 
+  }
+  else{
+    int errorCode = sensor.getErrorCode();
+    switch (errorCode) {
+     case 1: Serial.println("ERR: Sensor is offline"); break;
+     case 2: Serial.println("ERR: CRC validation failed."); break;
+    }  
+  }
 }
+
+
 
 void loop() {
     
-    getTempHum();
+    getTemp();
     
     Serial.print("Temp: ");
     Serial.print(Temp);
     Serial.print(" Average Temp: ");
     Serial.print(calculateAverage(TempArray));
-    Serial.print(" Hum: ");
-    Serial.print(Hum);
-    Serial.print(" Average Hum: ");
-    Serial.print(calculateAverage(HumArray));
+    // Serial.print(" Hum: ");
+    // Serial.print(Hum);
+    // Serial.print(" Average Hum: ");
+    // Serial.print(calculateAverage(HumArray));
     Serial.println();
-    resetArray(TempArray, NUM_SAMPLES);
-    resetArray(HumArray, NUM_SAMPLES);
+    //resetArray(TempArray);
+    // resetArray(HumArray);
     
     delay(500);
 }
+
+// void getTempHum() {
+//    if (sensor.measure()) {
+//        SensorTemp = sensor.getTemperature();
+//        SensorHum = sensor.getHumidity();
+
+//         TempArray[currentIndexTemp] = SensorTemp;
+//         if (TempArray[currentIndexTemp]!= 0){
+//           currentIndexTemp++ % NUM_SAMPLES;
+//         }
+        
+//         HumArray[currentIndexHum] = SensorHum;
+//         if (HumArray[currentIndexHum] != 0){
+//         currentIndexHum++ % NUM_SAMPLES;
+//         }
+        
+//     }
+//           else {
+//         int errorCode = sensor.getErrorCode();
+//         switch (errorCode) {
+//             case 1: Serial.println("ERR: Sensor is offline"); break;
+//             case 2: Serial.println("ERR: CRC validation failed."); break;
+//         }
+//     }
+//     Temp = SensorTemp;
+//     Hum = SensorHum;
+// }
