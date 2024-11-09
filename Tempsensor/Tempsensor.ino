@@ -1,9 +1,15 @@
 #include <Wire.h>
 #include <AM2320.h>
-
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 AM2320 sensor;
 
-#define NUM_SAMPLES 10
+#define OLED_RESET     -1
+#define SCREEN_ADDRESS 0x3c
+#define NUM_SAMPLES 10 // Number of values when calculating average
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 float SensorTemp;
 float SensorHum;
 float Temp;
@@ -12,6 +18,22 @@ float TempArray[NUM_SAMPLES];
 float HumArray[NUM_SAMPLES];
 int currentIndexTemp = 0;
 int currentIndexHum = 0;
+
+
+void setup() {
+    Serial.begin(9600);
+    Wire.begin(14, 12);
+
+      // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+}
 
 
 
@@ -49,11 +71,7 @@ void resetArray(float Array[]) {
   }
 }
 
-void setup() {
-    Serial.begin(9600);
-    Wire.begin(14, 12);
-    delay(5000);
-}
+
 
 
 void getTemp(){
@@ -92,12 +110,25 @@ void getHum(){
   }
 } 
 
+void displayValue(){
+  display.clearDisplay();
 
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.print(Temp);
+  display.print("C");
+  display.setCursor(10, 20);
+  display.print(Hum);
+  display.print("%");
+  display.display();
+}
 
 void loop() {
     
     getTemp();
     getHum();
+    displayValue();
 
     Serial.print("Temp: ");
     Serial.print(Temp);
@@ -113,6 +144,7 @@ void loop() {
     Serial.print("%");
     Serial.println();
 
+    
     
     delay(500);
 }
