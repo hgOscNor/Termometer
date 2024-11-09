@@ -6,10 +6,10 @@ AM2320 sensor;
 
 #define OLED_RESET     -1
 #define SCREEN_ADDRESS 0x3c
-#define NUM_SAMPLES 10 // Number of values when calculating average
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#define NUM_SAMPLES 10 // Number of values when calculating average
 float SensorTemp;
 float SensorHum;
 float Temp;
@@ -52,64 +52,6 @@ void shiftArrayRight(float array[], int size){
   }
 }
 
-void resetArray(float Array[]) {
-  int filledCount = 0;
-
-  // Count the number of non-zero elements
-  for (int i = 0; i < NUM_SAMPLES; i++) {
-    if (Array[i] != 0) {
-      filledCount++;
-    }
-  }
-
-  // Reset only if there are NUM_SAMPLES or more non-zero elements
-  if (filledCount >= NUM_SAMPLES) {
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-      Array[i] = 0;
-      yield();
-    }
-  }
-}
-
-
-
-
-void getTemp(){
-  if (sensor.measure()){
-    SensorTemp = sensor.getTemperature();
-        TempArray[0] = SensorTemp;
-        Temp = SensorTemp;
-      if (TempArray[0]!= 0){
-        shiftArrayRight(TempArray, NUM_SAMPLES);
-      } 
-  }
-  else{
-    int errorCode = sensor.getErrorCode();
-    switch (errorCode) {
-     case 1: Serial.println("ERR: Sensor is offline"); break;
-     case 2: Serial.println("ERR: CRC validation failed."); break;
-    }  
-  }
-}
-
-void getHum(){
-  if (sensor.measure()){
-    SensorHum = sensor.getHumidity();
-      HumArray[0] = SensorHum;
-      Hum = SensorHum;
-    if (HumArray[0] != 0){
-      shiftArrayRight(HumArray, NUM_SAMPLES);
-    }
-  }
-  else{
-    int errorCode = sensor.getErrorCode();
-    switch (errorCode) {
-     case 1: Serial.println("ERR: Sensor is offline"); break;
-     case 2: Serial.println("ERR: CRC validation failed."); break;
-    }  
-  }
-} 
-
 void displayValue(){
   display.clearDisplay();
 
@@ -120,31 +62,23 @@ void displayValue(){
   display.print("C");
   display.setCursor(10, 20);
   display.print(Hum);
-  display.print("%");
+  display.print("%"); 
   display.display();
 }
 
 void loop() {
     
-    getTemp();
-    getHum();
-    displayValue();
+  getTemp();
+  getHum();
+  displayValue();
 
-    Serial.print("Temp: ");
-    Serial.print(Temp);
-    Serial.print("°C");
-    Serial.print(" Average Temp: ");
-    Serial.print(calculateAverage(TempArray));
-    Serial.print("°C");
-    Serial.print(" Hum: ");
-    Serial.print(Hum);
-    Serial.print("%");
-    Serial.print(" Average Hum: ");
-    Serial.print(calculateAverage(HumArray));
-    Serial.print("%");
-    Serial.println();
+  tempSerial();
+  tempAvgSerial();
+  humSerial();
+  humAvgSerial();
+  Serial.println();
 
     
-    
-    delay(500);
+ 
+  delay(500);
 }
