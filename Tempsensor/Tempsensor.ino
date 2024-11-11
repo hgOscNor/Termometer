@@ -74,50 +74,40 @@ void getTemp(){
   }
 }
 
+void getHum(){
+    if (sensor.measure()){
+    SensorHum = sensor.getHumidity();
+        HumArray[0] = SensorHum;
+        Hum = SensorHum;
+      if (HumArray[0]!= 0){
+        shiftArrayRight(HumArray, NUM_SAMPLES);
+    } 
+  }
+  else{
+    int errorCode = sensor.getErrorCode();
+    switch (errorCode) {
+     case 1: Serial.println("ERR: Sensor is offline"); break;
+     case 2: Serial.println("ERR: CRC validation failed."); break;
+    }  
+  }
+}
+
 
 
 void loop() {
     
-    getTemp();
-    
-    Serial.print("Temp: ");
-    Serial.print(Temp);
-    Serial.print(" Average Temp: ");
-    Serial.print(calculateAverage(TempArray));
-    // Serial.print(" Hum: ");
-    // Serial.print(Hum);
-    // Serial.print(" Average Hum: ");
-    // Serial.print(calculateAverage(HumArray));
-    Serial.println();
-    //resetArray(TempArray);
-    // resetArray(HumArray);
-    
-    delay(500);
+  getTemp();
+  getHum();
+
+  Serial.print("Temp: ");
+  Serial.print(Temp);
+  Serial.print(" Average Temp: ");
+  Serial.print(calculateAverage(TempArray));
+  Serial.print(" Hum: ");
+  Serial.print(Hum);
+  Serial.print(" Average Hum: "); 
+  Serial.print(calculateAverage(HumArray));
+  Serial.println();
+ 
+  delay(500);
 }
-
-// void getTempHum() {
-//    if (sensor.measure()) {
-//        SensorTemp = sensor.getTemperature();
-//        SensorHum = sensor.getHumidity();
-
-//         TempArray[currentIndexTemp] = SensorTemp;
-//         if (TempArray[currentIndexTemp]!= 0){
-//           currentIndexTemp++ % NUM_SAMPLES;
-//         }
-        
-//         HumArray[currentIndexHum] = SensorHum;
-//         if (HumArray[currentIndexHum] != 0){
-//         currentIndexHum++ % NUM_SAMPLES;
-//         }
-        
-//     }
-//           else {
-//         int errorCode = sensor.getErrorCode();
-//         switch (errorCode) {
-//             case 1: Serial.println("ERR: Sensor is offline"); break;
-//             case 2: Serial.println("ERR: CRC validation failed."); break;
-//         }
-//     }
-//     Temp = SensorTemp;
-//     Hum = SensorHum;
-// }
