@@ -1,6 +1,4 @@
-
 #include <FirebaseESP8266.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiGratuitous.h>
 #include <ESP8266WiFiMulti.h>
@@ -34,6 +32,7 @@ float HumArray[NUM_SAMPLES];
 int currentIndexTemp = 0;
 int currentIndexHum = 0;
 int a = 0;
+bool isRegular;
 
 enum class DataType { Hum, Temp, HumAvg, TempAvg, HumIrr, TempIrr};
 
@@ -204,7 +203,7 @@ void humAvgSerial(){
   Serial.print("%");
 }
 
-void checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValue, DataType dataType) {
+bool checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValue, DataType dataType) {
     // Beräkna medelvärdet av de första tre elementen
     float value = (list[0] + list[1] + list[2]) / 3;
 
@@ -220,16 +219,18 @@ void checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValu
       Serial.print("Irregular temp: ");
       Serial.print(difference);
       Serial.print("C");
-      
+      return true;
     }
-    if (difference >= 5.0 && dataType == DataType::Hum) {
+    else if (difference >= 5.0 && dataType == DataType::Hum) {
       Serial.println();
       Serial.print("Irregular hum: ");
       Serial.print(difference);
       Serial.print("%");
-      
+      return true;
     }
-
+    else{
+      return false;
+    }
 }
 
 
@@ -252,7 +253,7 @@ void loop() {
        a = 0;
       }
     else{a++;}
-    
+  Serial.print("it works")
   
     
  
