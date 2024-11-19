@@ -172,7 +172,7 @@ void firebaseUploadData(float data, DataType dataType){
     else
     {
       Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason())
+      Serial.println(firebaseData.errorReason());
     }
   }
 }
