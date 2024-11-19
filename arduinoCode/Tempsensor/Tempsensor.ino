@@ -21,7 +21,7 @@ AM2320 sensor;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define timeBetweenUploads 10
-#define NUM_SAMPLES 10 // Number of values when calculating average
+#define NUM_SAMPLES 60 // Number of values when calculating average
 float SensorTemp;
 float SensorHum;
 float Temp;
