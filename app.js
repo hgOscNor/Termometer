@@ -15,6 +15,6 @@ firebase.initializeApp(firebaseConfig);
 
 const db = firebase.database();
 
-let hum = db.ref("sensor.HumAVG")
+let hum = db.ref(sensor.HumAVG)
 
 console.log(hum)
