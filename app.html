@@ -2,13 +2,21 @@
 <html>
     <head>
         <link rel="stylesheet" href="app.css">
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
 
     <body>
+        <h1>Temperatur</h1>
+         <div>
+            <div id="temp"></div>
+            <div id="hum"></div>
+         </div>
+         <div id="chart"></div>
+         
         <!-- Add Firebase SDK -->
-        <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-app.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-database.js"></script>
         
-        <script src="app.js"></script>
+        <script src="app.js" type="module"></script>
     </body>
 </html>

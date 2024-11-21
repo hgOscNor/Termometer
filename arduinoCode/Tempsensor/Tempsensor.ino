@@ -1,24 +1,19 @@
 #include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiGratuitous.h>
-#include <ESP8266WiFiMulti.h>
-#include <WiFiClient.h>
-#include <WiFiClientSecure.h>
-#include <WiFiServer.h>
-#include <WiFiServerSecure.h>
-#include <WiFiUdp.h>
-
 #include <Wire.h>
 #include <AM2320.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <string>
 AM2320 sensor;
 
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3c
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
+WiFiUDP ntpUDP;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define timeBetweenUploads 10
 #define NUM_SAMPLES 60 // Number of values when calculating average
@@ -33,6 +28,14 @@ float HumLatestThree[3];
 int currentIndexTemp = 0;
 int currentIndexHum = 0;
 int a = 0;
+int currentDay;
+int currentHour;
+int currentMin;
+int monthDay;
+int currentMonth;
+int currentYear;
+std::string currentDate;
+int currentSec;
 bool isRegular;
 
 enum class DataType{
@@ -45,6 +48,7 @@ enum class DataType{
   DebugOnline
 };
 
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
 FirebaseData firebaseData;
 
 void wifiSetup(){
@@ -80,7 +84,8 @@ void setup(){
   Wire.begin(14, 12);
   wifiSetup();
   firebaseSetup();
-
+  timeClient.begin();
+  timeClient.setTimeOffset(3600);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
   {
@@ -99,7 +104,7 @@ void firebaseUploadData(float data, DataType dataType){
 
   }
   else if(dataType == DataType::Temp){
-    if (Firebase.setInt(firebaseData, "/sensor/Temp", data))
+    if (Firebase.setInt(firebaseData, "/sensor/temp", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -110,7 +115,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
   else if(dataType == DataType::Hum){
-    if (Firebase.setInt(firebaseData, "/sensor/Hum", data))
+    if (Firebase.setInt(firebaseData, "/sensor/"+ std::string(currentDate) +"/hum", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -121,7 +126,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
   else if(dataType == DataType::TempAvg){
-    if (Firebase.setInt(firebaseData, "/sensor/TempAVG", data))
+    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/tempAvg", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -132,7 +137,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
     else if(dataType == DataType::HumAvg){
-    if (Firebase.setInt(firebaseData, "/sensor/HumAVG", data))
+    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/humAvg", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -143,7 +148,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
   else if(dataType == DataType::HumIrr){
-    if (Firebase.setInt(firebaseData, "/sensor/HumIrr", data))
+    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/humIrr", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -154,7 +159,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
   else if(dataType == DataType::TempIrr){
-    if (Firebase.setInt(firebaseData, "/sensor/TempIrr", data))
+    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/tempIrr", data))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -165,7 +170,7 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
     else if(dataType == DataType::DebugOnline){
-    if (Firebase.setInt(firebaseData, "/Debug/Online", true))
+    if (Firebase.setInt(firebaseData, "/debug/online", true))
     {
       Serial.println("Data skickat till Firebase");
     }
@@ -176,7 +181,6 @@ void firebaseUploadData(float data, DataType dataType){
     }
   }
 }
-
 
 float calculateAverage(const int index, const float Values[NUM_SAMPLES]){ // räkna medelvärde
   float sum = 0;
@@ -285,6 +289,20 @@ void humAvgSerial(){
   Serial.print("%");
 }
 
+void updateTime(){
+  timeClient.update();
+  time_t epochTime = timeClient.getEpochTime();
+  currentDay = timeClient.getDay();
+  currentHour = timeClient.getHours();
+  currentMin = timeClient.getMinutes();
+  currentSec = timeClient.getSeconds();
+  struct tm *ptm = gmtime ((time_t *)&epochTime);
+  monthDay = ptm->tm_mday;
+  currentMonth = ptm->tm_mon+1;
+  currentYear = ptm->tm_year+1900;
+  currentDate = std::to_string(currentYear) +"/"+ std::to_string(currentMonth) +"/"+ std::to_string(monthDay) +"/"+ std::to_string(currentHour) +"/"+ std::to_string(currentMin) +"/"+ std::to_string(currentSec);
+}
+
 bool checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValue, DataType dataType){
   // Beräkna medelvärdet av de första tre elementen
   float value = (list[0] + list[1] + list[2]) / 3;
@@ -320,7 +338,7 @@ bool checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValu
 }
 
 void loop(){
-
+  updateTime();
   getTemp();
   getHum();
   displayValue();
