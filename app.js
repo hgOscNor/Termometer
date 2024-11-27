@@ -277,12 +277,12 @@ onValue(dbRootRef, (snapshot) => {
       console.log(tempArray, "C irr");
     }
 
-    if (humArray.length > tempArray.length){
+    if (humArray.length < tempArray.length){
       humArray[tempArray.length - 1] = humArray[humArray.length - 1]
       console.log("corrected humArray", humArray)
     }
-    if (tempArray.length > tempArray.length){
-      tempArray[humArray.length - 1] = tempArray[humtemp.length - 1]
+    if (tempArray.length < humArray.length){
+      tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
       console.log("corrected tempArray", tempArray)
     }
 
