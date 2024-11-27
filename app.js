@@ -25,8 +25,10 @@ const randomArray = [
   68.94, 69.39, 71.65, 72.19, 73.45, 74.29, 74.82, 75.34, 76.91, 77.66, 
   78.12, 79.38, 80.34, 81.45, 82.67, 83.95, 84.12, 85.23, 86.34, 87.65, 
   87.91, 88.02, 88.47, 89.76, 90.21, 90.23, 91.08, 92.03, 92.10, 93.72, 
-  94.63, 95.63, 96.34, 97.23, 98.74, 99.21, 99.67, 100.00
+  94.63, 95.63, 96.34, 97.23, 98.74, 99.21, 99.67, "2024-11-27 13:28.10"
 ];
+
+let xAxisLenght
 
 var options = {
   chart: {
@@ -81,28 +83,38 @@ let currentTime = { year, month, day, hour, minute, second };
 console.log(currentTime)
 return currentTime
 }
-function getHistory(){
-
+function mathRound(number, round){
+  number = Math.round(round)
+  return number
 }
 
-const dbRootRef = ref(db);
+const dbRootRef = ref(db, "sensor");
 
 let latestTimestamp = null;
 let latestMeasurement = null;
+let tempArray = []
+let humArray = []
+let timeArray = []
 
-onChildAdded(dbRootRef, (snapshot) => {
+onValue(dbRootRef, (snapshot) => {
   const value = snapshot.val();
-  if (value.online == true) {
-    return 0;
-  }
   console.log("rådata", value);
 
   let currentTime = getTime();
   let i = 100;
-  let l = 0;
-  let tempArray = {}
-  let humArray = {}
-  let timeArray = {}
+  let l = -5;
+  let yearString
+  let monthString
+  let dayString
+  let hourString
+  let minuteString
+  let secondsString
+  let latestYear = 0
+  let latestMonth = 0
+  let latestDay = 0
+  let latestHour = 0
+  let latestMinute = 0
+  let latestSecond = 0
 
   while (0 < i) {
     console.log("has entered while");
@@ -119,8 +131,8 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestYear = l;
-    l = 0;
+    latestYear = l;
+    l = -5;
     console.log("Found year:", currentTime.year - latestYear);
   
     // Leta efter senaste månaden
@@ -133,8 +145,8 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestMonth = l;
-    l = 0;
+    latestMonth = l;
+    l = -5;
     console.log("Found month:", currentTime.month - latestMonth);
   
     // Leta efter senaste dagen
@@ -149,8 +161,8 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestDay = l;
-    l = 0;
+    latestDay = l;
+    l = -5;
     console.log("Found day:", currentTime.day - latestDay);
   
     // Leta efter senaste timmen
@@ -165,8 +177,8 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestHour = l;
-    l = 0;
+    latestHour = l;
+    l = -5;
     console.log("Found hour:", currentTime.hour - latestHour);
   
     // Leta efter senaste minuten
@@ -181,8 +193,8 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestMinute = l;
-    l = 0;
+    latestMinute = l;
+    l = -5;
     console.log("Found minute:", currentTime.minute - latestMinute);
   
     // Leta efter senaste sekunden
@@ -197,47 +209,97 @@ onChildAdded(dbRootRef, (snapshot) => {
         return;
       }
     }
-    let latestSecond = l;
+    latestSecond = l;
     console.log("Found second:", currentTime.second - latestSecond);
   
     // Hämta det senaste värdet
     const latestData =
       value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute][currentTime.second - latestSecond];
   
+
+    Object.keys(value).forEach((key) => {
+      if (key == currentTime.year - latestYear) {
+        yearString = key.toString()
+    }});
+
+    Object.keys(value[currentTime.year - latestYear]).forEach((key) => {
+      if (key == currentTime.month - latestMonth) {
+        monthString = key.toString()
+    }});
+
+    Object.keys(value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay]).forEach((key) => {
+      if (key == currentTime.day - latestDay) {
+        dayString = key.toString()
+    }});
+
+    Object.keys(value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour]).forEach((key) => {
+      if (key == currentTime.hour - latestHour) {
+        hourString = key.toString()
+    }});
+
+    Object.keys(value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute]).forEach((key) => {
+      if (key == currentTime.minute - latestMinute) {
+        monthString = key.toString()
+    }});
+
+    Object.keys(value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute][currentTime.second - latestSecond]).forEach((key) => {
+      if (key == currentTime.second - latestSecond) {
+        secondsString = key.toString()
+    }});
+
+
     if (latestData.humAvg !== undefined) {
-      if(humArray.lenght > 100){
+      humArray.push(latestData.humAvg)
+      if(humArray.lenght > xAxisLenght){
         humArray.shift
       }
-      console.log(latestData.humAvg + "%");
+      console.log(humArray, "%");
     }
     if (latestData.humIrr !== undefined) {
-      if(humArray.lenght > 100){
+      humArray.push(latestData.humIrr)
+      if(humArray.lenght > xAxisLenght){
         humArray.shift
       }
-      console.log(latestData.humIrr + "irr");
+      console.log(humArray, "% irr");
     }
     if (latestData.tempAvg !== undefined) {
-      tempArray.push = latestData.tempAvg;
-      if(tempArray.lenght > 100){
+      tempArray.push(latestData.tempAvg)
+      if(tempArray.lenght > xAxisLenght){
         tempArray.shift
       }
-      console.log(latestData.tempAvg + "C");
+      console.log(tempArray, "C");
     }
     if (latestData.tempIrr !== undefined) {
-      if(tempArray.lenght > 100){
+      tempArray.push(latestData.tempIrr)
+      if(tempArray.lenght > xAxisLenght){
         tempArray.shift
       }
-      console.log(latestData.tempIrr + "irr");
+      console.log(tempArray, "C irr");
     }
-    
-    
-    humArray
-    timeArray
+
+    if (humArray.length > tempArray.length){
+      humArray[tempArray.length - 1] = humArray[humArray.length - 1]
+      console.log("corrected humArray", humArray)
+    }
+    if (tempArray.length > tempArray.length){
+      tempArray[humArray.length - 1] = tempArray[humtemp.length - 1]
+      console.log("corrected tempArray", tempArray)
+    }
+
+
+    yearString = [currentTime.year - latestYear].toString()
+    monthString = [currentTime.month - latestMonth].toString()
+    dayString = [currentTime.day - latestDay].toString()
+    hourString = [currentTime.hour - latestHour].toString()
+    minuteString = [currentTime.minute - latestMinute].toString()
+    secondsString = [currentTime.second - latestSecond].toString()
+
+    console.log(yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString)
 
     // Avsluta loopen
-    i--
+    if(timeArray.lenght > 100){
+      i = 0
+    }
+    i = 0
   }
-  
 })
-
-
