@@ -28,7 +28,6 @@ const randomArray = [
   94.63, 95.63, 96.34, 97.23, 98.74, 99.21, 99.67, "2024-11-27 13:28.10"
 ];
 
-let xAxisLenght
 
 var options = {
   chart: {
@@ -83,20 +82,58 @@ let currentTime = { year, month, day, hour, minute, second };
 console.log(currentTime)
 return currentTime
 }
-function mathRound(number, round){
-  number = Math.round(round)
-  return number
+function valueToString(latestData){
+  if (latestData.humAvg !== undefined) {
+    humArray.push(latestData.humAvg)
+    if(humArray.length>= xAxisLength){
+      humArray.shift()
+    }
+    console.log(humArray, "%");
+  }
+  if (latestData.humIrr !== undefined) {
+    humArray.push(latestData.humIrr)
+    if(humArray.length>= xAxisLength){
+      humArray.shift()
+    }
+    console.log(humArray, "% irr");
+  }
+  if (latestData.tempAvg !== undefined) {
+    tempArray.push(latestData.tempAvg)
+    if(tempArray.length>= xAxisLength){
+      tempArray.shift()
+    }
+    console.log(tempArray, "C");
+  }
+  if (latestData.tempIrr !== undefined) {
+    tempArray.push(latestData.tempIrr)
+    if(tempArray.length>= xAxisLength){
+      tempArray.shift()
+    }
+    console.log(tempArray, "C irr");
+  }
+
+  if (humArray.length < tempArray.length){
+    humArray[tempArray.length - 1] = humArray[humArray.length - 1]
+    console.log("corrected humArray", humArray)
+  }
+  if (tempArray.length < humArray.length){
+    tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
+    console.log("corrected tempArray", tempArray)
+  }
 }
 
-const dbRootRef = ref(db, "sensor");
 
-let latestTimestamp = null;
-let latestMeasurement = null;
+
+
+
+const dbRootRef = ref(db, "sensor");
+let xAxisLength = 100
 let tempArray = []
 let humArray = []
 let timeArray = []
 
 onValue(dbRootRef, (snapshot) => {
+  
   const value = snapshot.val();
   console.log("rådata", value);
 
@@ -115,13 +152,40 @@ onValue(dbRootRef, (snapshot) => {
   let latestHour = 0
   let latestMinute = 0
   let latestSecond = 0
+  const maxIterations = 1000; // Säkerhetsgräns för att undvika oändliga loopar
+  let iterationCount = 0;
+  
+  function timeToString(){
+    yearString = [currentTime.year - latestYear].toString()
+    monthString = [currentTime.month - latestMonth].toString()
+    if (monthString.length=== 1){
+      monthString = "0" + monthString
+    }
+    dayString = [currentTime.day - latestDay].toString()
+    if (dayString.length=== 1){
+      dayString = "0" + dayString
+    }
+    hourString = [currentTime.hour - latestHour].toString()
+    if (hourString.length=== 1){
+      hourString = "0" + hourString
+    }
+    minuteString = [currentTime.minute - latestMinute].toString()
+    if (minuteString.length=== 1){
+      minuteString = "0" + minuteString
+    }
+    secondsString = [currentTime.second - latestSecond].toString()
+    if (secondsString.length=== 1){
+      secondsString = "0" + secondsString
+    }
+    console.log(yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString)
+    return yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString
+  }
+  
 
   while (0 < i) {
     console.log("has entered while");
   
-    const maxIterations = 10000; // Säkerhetsgräns för att undvika oändliga loopar
-    let iterationCount = 0;
-  
+    
     // Leta efter senaste året
     while (value[currentTime.year - l] === undefined) {
       l++;
@@ -247,59 +311,173 @@ onValue(dbRootRef, (snapshot) => {
         secondsString = key.toString()
     }});
 
+    valueToString(latestData);
+    timeToString();
 
-    if (latestData.humAvg !== undefined) {
-      humArray.push(latestData.humAvg)
-      if(humArray.lenght > xAxisLenght){
-        humArray.shift
+    
+    
+    function secondFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    iterationCount = 0;
+    while (
+      value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute][currentTime.second - latestSecond - 1] === undefined
+    ) {
+      iterationCount++;
+      latestSecond++;
+      if (iterationCount > maxIterations) {
+        console.error("Exceeded max iterations while finding second");
+        minuteFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime)
+        return;
       }
-      console.log(humArray, "%");
     }
-    if (latestData.humIrr !== undefined) {
-      humArray.push(latestData.humIrr)
-      if(humArray.lenght > xAxisLenght){
-        humArray.shift
+    latestSecond--;
+    const latestHistoryData = value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute][currentTime.second - latestSecond]
+    console.log(latestHistoryData)
+    function historyValueToString(latestHistoryData){
+      if (latestHistoryData.humAvg !== undefined) {
+        humArray.unshift(latestHistoryData.humAvg)
+        if(humArray.length>= xAxisLength){
+          humArray.shift()
+        }
+        console.log(humArray, "%");
       }
-      console.log(humArray, "% irr");
-    }
-    if (latestData.tempAvg !== undefined) {
-      tempArray.push(latestData.tempAvg)
-      if(tempArray.lenght > xAxisLenght){
-        tempArray.shift
+      if (latestHistoryData.humIrr !== undefined) {
+        humArray.unshift(latestHistoryData.humIrr)
+        if(humArray.length>= xAxisLength){
+          humArray.shift()
+        }
+        console.log(humArray, "% irr");
       }
-      console.log(tempArray, "C");
-    }
-    if (latestData.tempIrr !== undefined) {
-      tempArray.push(latestData.tempIrr)
-      if(tempArray.lenght > xAxisLenght){
-        tempArray.shift
+      if (latestHistoryData.tempAvg !== undefined) {
+        tempArray.unshift(latestHistoryData.tempAvg)
+        if(tempArray.length>= xAxisLength){
+          tempArray.shift()
+        }
+        console.log(tempArray, "C");
       }
-      console.log(tempArray, "C irr");
+      if (latestHistoryData.tempIrr !== undefined) {
+        tempArray.unshift(latestHistoryData.tempIrr)
+        if(tempArray.length>= xAxisLength){
+          tempArray.shift()
+        }
+        console.log(tempArray, "C irr");
+      }
+    
+      if (humArray.length < tempArray.length){
+        humArray[tempArray.length - 1] = humArray[humArray.length - 1]
+        console.log("corrected humArray", humArray)
+      }
+      if (tempArray.length < humArray.length){
+        tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
+        console.log("corrected tempArray", tempArray)
+      }
     }
-
-    if (humArray.length < tempArray.length){
-      humArray[tempArray.length - 1] = humArray[humArray.length - 1]
-      console.log("corrected humArray", humArray)
+    historyValueToString(latestHistoryData);
+    timeToString();
+    return 
+  }
+  function minuteFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    // Leta efter senaste minuten
+    iterationCount = 0;
+    while (
+      value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute - 1] === undefined
+    ) {
+      iterationCount++;
+      latestMinute++;
+      if (iterationCount > maxIterations) {
+        console.error("Exceeded max iterations while finding minute");
+        hourFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return;
+      }
+      if(value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour][currentTime.minute - latestMinute - 1] !== undefined){
+        latestMinute--;
+        secondFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return
+      }
     }
-    if (tempArray.length < humArray.length){
-      tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
-      console.log("corrected tempArray", tempArray)
+  }
+  function hourFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    // Leta efter senaste timmen
+    iterationCount = 0;
+    while (
+      value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour - 1] === undefined
+    ) {
+      iterationCount++;
+      latestHour++;
+      if (iterationCount > maxIterations) {
+        console.error("Exceeded max iterations while finding hour");
+        dayFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return;
+      }
+      if (value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay][currentTime.hour - latestHour - 1] !== undefined){
+        latestHour--;
+        minuteFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return;
     }
-
-
-    yearString = [currentTime.year - latestYear].toString()
-    monthString = [currentTime.month - latestMonth].toString()
-    dayString = [currentTime.day - latestDay].toString()
-    hourString = [currentTime.hour - latestHour].toString()
-    minuteString = [currentTime.minute - latestMinute].toString()
-    secondsString = [currentTime.second - latestSecond].toString()
-
-    console.log(yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString)
+    }
+  }
+  function dayFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    // Leta efter senaste dagen
+    iterationCount = 0;
+    while (
+      value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay - 1] === undefined
+    ) {
+      iterationCount++;
+      latestDay++;
+      if (iterationCount > maxIterations) {
+        console.error("Exceeded max iterations while finding day");
+        monthFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return;
+      }
+      if (value[currentTime.year - latestYear][currentTime.month - latestMonth][currentTime.day - latestDay - 1] !== undefined){
+        latestDay--;
+        hourFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
+        return;
+      }
+    }
+  }
+  function monthFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    // Leta efter senaste månaden
+    iterationCount = 0;
+    while (value[currentTime.year - latestYear][currentTime.month - latestMonth - 1] === undefined) {
+      iterationCount++;
+      latestMonth++;
+      if (iterationCount > maxIterations) {
+        console.error("Exceeded max iterations while finding month");
+        yearFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime)
+        return;
+      }
+      if (value[currentTime.year - latestYear][currentTime.month - latestMonth - 1] !== undefined){
+        latestHour--;
+        dayFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime)
+        return;
+      }
+    }
+  }
+  function yearFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime){
+    // Leta efter senaste året
+    while (value[currentTime.year - latestYear - 1] === undefined) {
+      iterationCount++;
+      latestYear++;
+      if (iterationCount > maxIterations) {
+        console.error("You have reached the end of time");
+        return;
+      }
+      if (value[currentTime.year - latestYear - 1] !== undefined){
+        latestYear--;
+        monthFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime)
+        return;
+      }
+    }
+  }
 
     // Avsluta loopen
-    if(timeArray.lenght > 100){
+    if(timeArray.length > 100){
       i = 0
+    }
+    else if (timeArray.length < 100){
+      secondFindHistory(value, latestYear, latestMonth, latestDay, latestHour, latestMinute, latestSecond, currentTime);
     }
     i = 0
   }
 })
+
