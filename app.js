@@ -1,6 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, onValue, ref, child, push, update, onChildAdded, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
+
+
+
 // Your Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyCQDevcOGsNzQTy0F63KP5b3DJQOjmH3jk",
@@ -16,7 +19,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
-let xAxisLength = 101
+const dbRootRef = ref(db, "/")
+const xAxisLength = 100
 let tempArray = [0]
 let humArray = [0]
 let datestampArray = [];
@@ -185,12 +189,12 @@ onValue(dbSensorRef, (snapshot) => {
   }
   
   // hitta data och tider
-  function findLatestData(value, currentTime, maxResults) {
+  function findLatestData(value, currentTime, xAxisLength) {
     const dataArray = [];
 
     let iterationCount = 0;
 
-    while (dataArray.length < maxResults && iterationCount < maxIterations) {
+    while (tempArray.length + 1 < xAxisLength && iterationCount < maxIterations) {
       const { year, month, day, hour, minute, second } = currentTime;
 
       // Kontrollera om data finns på denna tidpunkt
@@ -201,7 +205,7 @@ onValue(dbSensorRef, (snapshot) => {
         value[year][month][day][hour] &&
         value[year][month][day][hour][minute] &&
         value[year][month][day][hour][minute][second] !== undefined) {
-        console.log("found data at", value[year][month][day][hour][minute][second])
+        // console.log("found data at", value[year][month][day][hour][minute][second])
         // Hämta data och tidsstämpel
         const data = value[year][month][day][hour][minute][second];
         const timestamp = `${year}-${month.toString().padStart(2, '0')}-${day
@@ -212,47 +216,49 @@ onValue(dbSensorRef, (snapshot) => {
 
         // Lägg till i arrayerna
         function valueToString(data){
-          if (data.humAvg !== undefined) {
-            humArray.push(Math.round(data.humAvg))
-            if(humArray.length>= xAxisLength){
-              humArray.shift()
-            }
-            console.log(humArray, "%");
-          }
+          
+            // console.log(humArray, "%");
+          
           if (data.humIrr !== undefined) {
             humArray.push(Math.round(data.humIrr))
             if(humArray.length>= xAxisLength){
               humArray.shift()
             }
-            console.log(humArray, "% irr");
           }
-          if (data.tempAvg !== undefined) {
-            tempArray.push(Math.round(data.tempAvg))
-            if(tempArray.length>= xAxisLength){
-              tempArray.shift()
-            }
-            console.log(tempArray, "C");
+          else if (data.humAvg !== undefined) {
+          humArray.push(Math.round(data.humAvg))
+          if(humArray.length>= xAxisLength){
+            humArray.shift()
+            } // console.log(humArray, "% irr");
           }
+          
           if (data.tempIrr !== undefined) {
             tempArray.push(Math.round(data.tempIrr))
             if(tempArray.length>= xAxisLength){
               tempArray.shift()
             }
-            console.log(tempArray, "C irr");
+            // console.log(tempArray, "C irr");
+          }
+          else if (data.tempAvg !== undefined) {
+            tempArray.push(Math.round(data.tempAvg))
+            if(tempArray.length>= xAxisLength){
+              tempArray.shift()
+            }
+            // console.log(tempArray, "C");
           }
         
           if (humArray.length < tempArray.length){
             humArray[tempArray.length - 1] = humArray[humArray.length - 1]
-            console.log("corrected humArray", humArray)
+            // console.log("corrected humArray", humArray)
           }
           if (tempArray.length < humArray.length){
             tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
-            console.log("corrected tempArray", tempArray)
+            // console.log("corrected tempArray", tempArray)
           }
         }
         valueToString(data);
         dataArray.unshift(data);
-        console.log(data)
+        // console.log(data)
         datestampArray.unshift(timestamp.slice(0, 10));
         timestampArray.unshift(timestamp.slice(11, 99))
         
@@ -270,8 +276,7 @@ onValue(dbSensorRef, (snapshot) => {
     return { dataArray, datestampArray };
   }
   
-  const maxResults = 500;
-  const result = findLatestData(value, currentTime, maxResults);
+  const result = findLatestData(value, currentTime, xAxisLength);
   
   console.log("Latest data array:", result.dataArray);
   console.log("Latest timestamp array:", result.datestampArray);
@@ -286,10 +291,12 @@ onValue(dbSensorRef, (snapshot) => {
   }
   firstFetch = false
 
-  let firstTimestamp = new Date(datestampArray[0])
-  console.log(firstTimestamp)
-  if(firstTimestamp.getDate - 1 !== undefined){
+let firstTimestamp = new Date(datestampArray[0])
+for (let i = 1; i < 20; i++) {
+  console.log("enterd for loop" + firstTimestamp)
+  if(firstTimestamp.getDate - i !== undefined){
     function decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year) {
+
       // Minska sekunden
       second--;
       if (second < 0) {
@@ -307,20 +314,21 @@ onValue(dbSensorRef, (snapshot) => {
       if (hour < 0) {
         hour = 23;
       }
-      console.log("year:" + year + " month:" + month + " day:" + day + " hour:" + hour + " minute:" + minute + " second:" + second)
+      // console.log("year:" + year + " month:" + month + " day:" + day + " hour:" + hour + " minute:" + minute + " second:" + second)
       return { year, month, day, hour, minute, second };
     }
     function findAndUploadHistoryData(value, firstTimestamp) {
       const dataArray = [];
-      const maxHistoryIterations = 86400
+      const maxHistoryIterations = 86399
       let iterationCount = 0;
       let historyHumArray = []
       let historyTempArray = []
-      let second = 60
+      let second = 59
       let minute = 59 
       let hour = 23
-      let day = firstTimestamp.getDate() - 1
-      let month = firstTimestamp.getMonth()
+      let day = firstTimestamp.getDate() - i
+      console.log("test day " + firstTimestamp.getDate())
+      let month = firstTimestamp.getMonth() + 1
       let year = firstTimestamp.getFullYear()
   
       while (iterationCount < maxHistoryIterations) {
@@ -347,58 +355,67 @@ onValue(dbSensorRef, (snapshot) => {
           function historyValueToString(data){
             if (data.humAvg !== undefined) {
               historyHumArray.push(Math.round(data.humAvg))
-              console.log(humArray, "%");
+              // console.log(humArray, "history %");
             }
             if (data.humIrr !== undefined) {
               historyHumArray.push(Math.round(data.humIrr))
-              console.log(humArray, "% irr");
+              // console.log(humArray, "history % irr");
             }
             if (data.tempAvg !== undefined) {
               historyTempArray.push(Math.round(data.tempAvg))
- 
-              console.log(tempArray, "C");
+  
+              // console.log(tempArray, "history C");
             }
             if (data.tempIrr !== undefined) {
               historyTempArray.push(Math.round(data.tempIrr))
- 
-              console.log(tempArray, "C irr");
+  
+              // console.log(tempArray, "history C irr");
             }
           }
           historyValueToString(data);
           dataArray.unshift(data);
-          console.log(data)
+          // console.log(data)
           historyDatestampArray.unshift(timestamp.slice(0, 10));
         }
   
         // Gå bakåt i tiden
-        currentTime = decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year);
+        ({ year, month, day, hour, minute, second } = decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year));
         iterationCount++;
       }
       function historyArraysUpload(historyDatestampArray, historyHumArray, historyTempArray){
-        const historyRef = ref(db, `history/${historyDatestampArray[0]}`)
-        let avregeHum, avregeTemp = 0
+        console.log("has enterd upload")
+        const historyRef = ref(db, `history/${historyDatestampArray[historyDatestampArray.length - 1]}`)
+        console.log("has found path ", historyDatestampArray[historyDatestampArray.length - 1])
+        let averageHum  = 0
+        let averageTemp = 0
+
         historyHumArray.sort(function(a, b){return a - b})
         const highestHum  = historyHumArray[historyHumArray.length - 1]
         const lowestHum = historyHumArray[0]
-        set(`${historyRef}/highestHum`, highestHum)
-        set(`${historyRef}/lowestHum`, lowestHum)
+        console.log(highestHum + " h hum ", lowestHum + " l hum")
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/highestHum"), highestHum);
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/lowestHum"), lowestHum);
+
+        
+
         historyTempArray.sort(function(a, b){return a - b})
         const highestTemp = historyTempArray[historyTempArray.length - 1]
         const lowestTemp = historyTempArray[0]
-        set(`${historyRef}/highestTemp`, highestTemp)
-        set(`${historyRef}/lowestTemp`, lowestTemp)
-        for(let i = 0; i < historyHumArray.length; i++){
-          avregeHum = avregeHum + historyHumArray[i]
-        }
-        avregeHum = avregeHum / historyHumArray.length
-        set(`${historyRef}/avregeHum`, avregeHum)
-        for(let i = 0; i < historyTempArray.length; i++){
-          avregeTemp = avregeTemp + historyTempArray[i]
-        }
-        avregeTemp = avregeTemp / historyTempArray.length
-        set(`${historyRef}/avregeTemp`, avregeTemp)
-      }
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/highestTemp"), highestTemp)
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/lowestTemp"), lowestTemp)
 
+        for(let i = 0; i < historyHumArray.length; i++){
+          averageHum  = averageHum  + historyHumArray[i]
+        }
+        averageHum  = averageHum  / historyHumArray.length
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/averageHum"), Math.round(averageHum))
+
+        for(let i = 0; i < historyTempArray.length; i++){
+          averageTemp = averageTemp + historyTempArray[i]
+        }
+        averageTemp = averageTemp / historyTempArray.length
+        set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/avregeTemp"), Math.round(averageTemp))
+      }
       if (iterationCount >= maxHistoryIterations) {
         historyArraysUpload(historyDatestampArray, historyHumArray, historyTempArray)
       }
@@ -406,5 +423,6 @@ onValue(dbSensorRef, (snapshot) => {
     }
     findAndUploadHistoryData(value, firstTimestamp)
   }
+}
   
 })
