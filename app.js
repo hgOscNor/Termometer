@@ -291,6 +291,7 @@ onValue(dbSensorRef, (snapshot) => {
   }
   firstFetch = false
 
+  
 let firstTimestamp = new Date(datestampArray[0])
 for (let i = 1; i < 20; i++) {
   console.log("enterd for loop" + firstTimestamp)
@@ -379,6 +380,8 @@ for (let i = 1; i < 20; i++) {
         }
   
         // Gå bakåt i tiden
+
+        //Här är felet
         ({ year, month, day, hour, minute, second } = decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year));
         iterationCount++;
       }
