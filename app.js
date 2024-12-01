@@ -15,13 +15,15 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dbRootRef = ref(db, "sensor");
+const dbSensorRef = ref(db, "sensor");
 let xAxisLength = 101
 let tempArray = [0]
 let humArray = [0]
 let timeArray = []
 let timeDatestampArray = []
 let timestampArray = [];
+let hasBeenRenderd = false
+let firstFetch = true
 
 var options = {
   chart: {
@@ -44,8 +46,6 @@ var options = {
 
 }
 
-
-
 var optionsLine2 = {
   chart: {
   id: 'tw',
@@ -66,7 +66,8 @@ xaxis: {
 }
 };
 
-
+var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsLine2);
+var chart = new ApexCharts(document.querySelector("#chart"), options);
 
 // ... rest of your code
 
@@ -136,183 +137,156 @@ function updateChartsData(timestamp, humArray, tempArray){
 }
 
 
-
-
-
-
-onValue(dbRootRef, (snapshot) => {
+onValue(dbSensorRef, (snapshot) => {
   
   const value = snapshot.val();
   console.log("rådata", value);
 
   let currentTime = getTime();
-  let yearString, monthString, dayString, hourString, minuteString, secondsString = ""
-  let latestYear, latestSecond, latestMonth, latestDay, latestHour, latestMinute = 0
+  const maxIterations = 1000000;
 
-  // const maxIterations = 1000; // Säkerhetsgräns för att undvika oändliga loopar
-  let iterationCount = 0;
-  
-  function timeToString(){
-    yearString = [currentTime.year - latestYear].toString()
-    monthString = [currentTime.month - latestMonth].toString()
-    if (monthString.length=== 1){
-      monthString = "0" + monthString
-    }
-    dayString = [currentTime.day - latestDay].toString()
-    if (dayString.length=== 1){
-      dayString = "0" + dayString
-    }
-    hourString = [currentTime.hour - latestHour].toString()
-    if (hourString.length=== 1){
-      hourString = "0" + hourString
-    }
-    minuteString = [currentTime.minute - latestMinute].toString()
-    if (minuteString.length=== 1){
-      minuteString = "0" + minuteString
-    }
-    secondsString = [currentTime.second - latestSecond].toString()
-    if (secondsString.length=== 1){
-      secondsString = "0" + secondsString
-    }
-    console.log(yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString)
-    return yearString + "-" + monthString + "-" + dayString + " " + hourString + ":" + minuteString + "." + secondsString
-  }
 
-  const maxIterations = 100000; // Säkerhetsgräns för att undvika eviga loopar
-
-  // Funktion för att gå bakåt i tid
+  // hitta historien
   function decrementTime(currentTime) {
-      let { year, month, day, hour, minute, second } = currentTime;
-  
-      // Minska sekunden
-      second--;
-      if (second < 0) {
-          second = 59;
-          minute--;
+    let { year, month, day, hour, minute, second } = currentTime;
+
+    // Minska sekunden
+    second--;
+    if (second < 0) {
+      second = 59;
+      minute--;
+    }
+
+    // Minska minuten
+    if (minute < 0) {
+      minute = 59;
+      hour--;
+    }
+
+    // Minska timmen
+    if (hour < 0) {
+      hour = 23;
+      day--;
+    }
+
+    // Minska dagen
+    if (day < 1) {
+      day = 32  
+      month--;
+      if (month < 1) {
+        month = 12;
+        year--;
       }
-  
-      // Minska minuten
-      if (minute < 0) {
-          minute = 59;
-          hour--;
-      }
-  
-      // Minska timmen
-      if (hour < 0) {
-          hour = 23;
-          day--;
-      }
-  
-      // Minska dagen
-      if (day < 1) {
-          month--;
-          if (month < 1) {
-              month = 12;
-              year--;
-          }
-          const daysInMonth = new Date(year, month, 0).getDate();
-          day = daysInMonth;
-      }
-  
-      return { year, month, day, hour, minute, second };
+      const daysInMonth = new Date(year, month, 0).getDate();
+      day = daysInMonth;
+    }
+    // console.log("year:" + year + " month:" + month + " day:" + day + " hour:" + hour + " minute:" + minute + " second:" + second)
+    return { year, month, day, hour, minute, second };
   }
   
-  // Funktion för att hitta och spara senaste data och tider
-  function findLatestDataArray(value, currentTime, maxResults) {
-      const dataArray = [];
+  // hitta data och tider
+  function findLatestData(value, currentTime, maxResults) {
+    const dataArray = [];
 
-      let iterationCount = 0;
-  
-      while (dataArray.length < maxResults && iterationCount < maxIterations) {
-          const { year, month, day, hour, minute, second } = currentTime;
-  
-          // Kontrollera om data finns på denna tidpunkt
-          if (
-              value[year] &&
-              value[year][month] &&
-              value[year][month][day] &&
-              value[year][month][day][hour] &&
-              value[year][month][day][hour][minute] &&
-              value[year][month][day][hour][minute][second] !== undefined
-          ) {
-              // Hämta data och tidsstämpel
-              const data = value[year][month][day][hour][minute][second];
-              const timestamp = `${year}-${month.toString().padStart(2, '0')}-${day
-                  .toString()
-                  .padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute
-                  .toString()
-                  .padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
-  
-              // Lägg till i arrayerna
-              function valueToString(data){
-                if (data.humAvg !== undefined) {
-                  humArray.push(Math.round(data.humAvg))
-                  if(humArray.length>= xAxisLength){
-                    humArray.shift()
-                  }
-                  console.log(humArray, "%");
-                }
-                if (data.humIrr !== undefined) {
-                  humArray.push(Math.round(data.humIrr))
-                  if(humArray.length>= xAxisLength){
-                    humArray.shift()
-                  }
-                  console.log(humArray, "% irr");
-                }
-                if (data.tempAvg !== undefined) {
-                  tempArray.push(Math.round(data.tempAvg))
-                  if(tempArray.length>= xAxisLength){
-                    tempArray.shift()
-                  }
-                  console.log(tempArray, "C");
-                }
-                if (data.tempIrr !== undefined) {
-                  tempArray.push(Math.round(data.tempIrr))
-                  if(tempArray.length>= xAxisLength){
-                    tempArray.shift()
-                  }
-                  console.log(tempArray, "C irr");
-                }
-              
-                if (humArray.length < tempArray.length){
-                  humArray[tempArray.length - 1] = humArray[humArray.length - 1]
-                  console.log("corrected humArray", humArray)
-                }
-                if (tempArray.length < humArray.length){
-                  tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
-                  console.log("corrected tempArray", tempArray)
-                }
+    let iterationCount = 0;
+
+    while (dataArray.length < maxResults && iterationCount < maxIterations) {
+      const { year, month, day, hour, minute, second } = currentTime;
+
+      // Kontrollera om data finns på denna tidpunkt
+      if (
+          value[year] &&
+          value[year][month] &&
+          value[year][month][day] &&
+          value[year][month][day][hour] &&
+          value[year][month][day][hour][minute] &&
+          value[year][month][day][hour][minute][second] !== undefined) {
+          console.log("found data at", value[year][month][day][hour][minute][second])
+          // Hämta data och tidsstämpel
+          const data = value[year][month][day][hour][minute][second];
+          const timestamp = `${year}-${month.toString().padStart(2, '0')}-${day
+              .toString()
+              .padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute
+              .toString()
+              .padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
+
+          // Lägg till i arrayerna
+          function valueToString(data){
+            if (data.humAvg !== undefined) {
+              humArray.push(Math.round(data.humAvg))
+              if(humArray.length>= xAxisLength){
+                humArray.shift()
               }
-              valueToString(data);
-              dataArray.unshift(data);
-              console.log(data)
-              timeDatestampArray.unshift(timestamp);
-              timestampArray.unshift(timestamp.slice(11, 99))
-              
+              console.log(humArray, "%");
+            }
+            if (data.humIrr !== undefined) {
+              humArray.push(Math.round(data.humIrr))
+              if(humArray.length>= xAxisLength){
+                humArray.shift()
+              }
+              console.log(humArray, "% irr");
+            }
+            if (data.tempAvg !== undefined) {
+              tempArray.push(Math.round(data.tempAvg))
+              if(tempArray.length>= xAxisLength){
+                tempArray.shift()
+              }
+              console.log(tempArray, "C");
+            }
+            if (data.tempIrr !== undefined) {
+              tempArray.push(Math.round(data.tempIrr))
+              if(tempArray.length>= xAxisLength){
+                tempArray.shift()
+              }
+              console.log(tempArray, "C irr");
+            }
+          
+            if (humArray.length < tempArray.length){
+              humArray[tempArray.length - 1] = humArray[humArray.length - 1]
+              console.log("corrected humArray", humArray)
+            }
+            if (tempArray.length < humArray.length){
+              tempArray[humArray.length - 1] = tempArray[tempArray.length - 1]
+              console.log("corrected tempArray", tempArray)
+            }
           }
-  
-          // Gå bakåt i tiden
-          currentTime = decrementTime(currentTime);
-          iterationCount++;
-      }
-  
-      if (iterationCount >= maxIterations) {
-          console.error("Exceeded max iterations.");
-      }
-  
-      return { dataArray, timeDatestampArray };
+          valueToString(data);
+          dataArray.unshift(data);
+          console.log(data)
+          timeDatestampArray.unshift(timestamp.slice(0, 10));
+          timestampArray.unshift(timestamp.slice(11, 99))
+          
+        }
+
+      // Gå bakåt i tiden
+      currentTime = decrementTime(currentTime);
+      iterationCount++;
+    }
+
+    if (iterationCount >= maxIterations) {
+      console.error("Exceeded max iterations.");
+    }
+    console.log(iterationCount)
+    return { dataArray, timeDatestampArray };
   }
   
   const maxResults = 100;
-  const result = findLatestDataArray(value, currentTime, maxResults);
+  const result = findLatestData(value, currentTime, maxResults);
   
   console.log("Latest data array:", result.dataArray);
   console.log("Latest timestamp array:", result.timeDatestampArray);
   
-  var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsLine2);
-  chartLine2.render();
-  var chart = new ApexCharts(document.querySelector("#chart"), options);
-  chart.render();
+  if (hasBeenRenderd === false){
+    chartLine2.render();
+    chart.render();
+    hasBeenRenderd = true
   }
-)
+  else if (firstFetch === false){
+    updateChartsData(timestamp, humArray, tempArray);
+  }
+  firstFetch = false
+  console.log(timeDatestampArray[0].slice(8, 10))
+  if(timeDatestampArray[0].slice(8, 10) - 1 !== undefined){
 
+  }
+})
