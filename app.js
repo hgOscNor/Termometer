@@ -326,7 +326,7 @@ for (let i = 1; i < 20; i++) {
       let second = 59
       let minute = 59 
       let hour = 23
-      let day = firstTimestamp.getDate() - i
+      let day = firstTimestamp.getDate() - 1
       console.log("test day " + firstTimestamp.getDate())
       let month = firstTimestamp.getMonth() + 1
       let year = firstTimestamp.getFullYear()
@@ -384,8 +384,8 @@ for (let i = 1; i < 20; i++) {
       }
       function historyArraysUpload(historyDatestampArray, historyHumArray, historyTempArray){
         console.log("has enterd upload")
-        const historyRef = ref(db, `history/${historyDatestampArray[historyDatestampArray.length - 1]}`)
-        console.log("has found path ", historyDatestampArray[historyDatestampArray.length - 1])
+        const historyRef = ref(db, `history/${historyDatestampArray[historyDatestampArray.length - i]}`)
+        console.log("has found path ", historyDatestampArray[historyDatestampArray.length - i])
         let averageHum  = 0
         let averageTemp = 0
 
@@ -404,14 +404,14 @@ for (let i = 1; i < 20; i++) {
         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/highestTemp"), highestTemp)
         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/lowestTemp"), lowestTemp)
 
-        for(let i = 0; i < historyHumArray.length; i++){
-          averageHum  = averageHum  + historyHumArray[i]
+        for(let l = 0; l < historyHumArray.length; l++){
+          averageHum  = averageHum  + historyHumArray[l]
         }
         averageHum  = averageHum  / historyHumArray.length
         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/averageHum"), Math.round(averageHum))
 
-        for(let i = 0; i < historyTempArray.length; i++){
-          averageTemp = averageTemp + historyTempArray[i]
+        for(let l = 0; l < historyTempArray.length; l++){
+          averageTemp = averageTemp + historyTempArray[l]
         }
         averageTemp = averageTemp / historyTempArray.length
         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/avregeTemp"), Math.round(averageTemp))
