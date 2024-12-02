@@ -1,0 +1,8 @@
+body {
+    margin: 0; /* Tar bort marginaler runt body */
+    background-image: url('assets/background.jpg'); /* Lägg till din bild */
+    background-size: cover; /* Ser till att bilden täcker hela bakgrunden */
+    background-repeat: no-repeat; /* Förhindrar upprepning av bilden */
+    background-attachment: fixed; /* Gör så att bilden stannar vid scroll */
+    background-position: center; /* Positionerar bilden centrerat */
+}

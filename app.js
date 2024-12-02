@@ -28,51 +28,122 @@ let timestampArray = [];
 let hasBeenRenderd = false
 let firstFetch = true
 let timestamps = []
-var options = {
+const randomArray = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
+const randomArray2 = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
+const randomArray3 = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
+console.log(randomArray)
+var optionsTemp = {
   chart: {
     type: 'line',
     id: 'fb',
     group: 'social',
     type: 'line',
-    height: 200,
-    padding: 20
+    height: 250,
+  },
+  stroke:{
+    curve: "smooth"
   },
   series: [{
     data: tempArray,
     name: 'Temp',
 
   }],
+  title: {
+    text: "Tempature"
+  },
   xaxis: {
       categories: timestampArray,
       type: "dateTime",
-  }
+  },
+  colors: ['#ff7713'],
 
 }
-
-var optionsLine2 = {
+var optionsHum = {
   chart: {
   id: 'tw',
   group: 'social',
   type: 'line',
-  height: 200,
+  height: 250,
  
+},
+stroke:{
+  curve: "smooth"
 },
 series: [{
   data: humArray,
   name: 'Hum',
 
 }],
-colors: ['#ff7713'],
+title: {
+  text: "Humidity"
+},
 xaxis: {
   categories: timestampArray,
   type: "dateTime",
 }
 };
+var optionsHumCombo = {
+  series: [{
+    name: "Highest",
+    type: "column",
+    data: randomArray
+  },{
+    name: "Lowest",
+    type: "column",
+    data: randomArray2
+  },{
+    name: "Avreage",
+    type: "line",
+    data: randomArray3,
+  }],
+    chart: {
+      type: "line",
+      height: 250,
+    },
+  // stroke: {
+  //   width: [0, 4],
+  // },
+  title: {
+    text: "Humidity's past"
+  },
+  stroke:{
+    curve: "smooth"
+  },
+  colors:['#F44336', '#E91E63', '#9C27B0']
+}
+var optionsTempCombo = {
+  series: [{
+    name: "Highest",
+    type: "column",
+    data: randomArray2
+  },{
+    name: "Lowest",
+    type: "column",
+    data: randomArray3
+  },{
+    name: "Avreage",
+    type: "line",
+    data: randomArray,
+  }],
+    chart: {
+      type: "line",
+      height: 250,
+    },
+  stroke: {
+    width: [0, 4],
+  },
+  title: {
+    text: "Tempature's past"
+  },
+  stroke:{
+    curve: "smooth"
+  },
+}
+var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsHum);
+var chart = new ApexCharts(document.querySelector("#chart"), optionsTemp);
+var humComboChart = new ApexCharts(document.querySelector("#humComboChart"), optionsHumCombo);
+var tempComboChart = new ApexCharts(document.querySelector("#tempComboChart"), optionsTempCombo);
 
-var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsLine2);
-var chart = new ApexCharts(document.querySelector("#chart"), options);
-
-// ... rest of your code
 
 function getTime(){
 let now = new Date();
@@ -321,6 +392,8 @@ onValue(dbSensorRef, (snapshot) => {
     // humArray.shift()
     chartLine2.render();
     chart.render();
+    humComboChart.render();
+    tempComboChart.render();
     hasBeenRenderd = true
   }
   else if (firstFetch === false){
