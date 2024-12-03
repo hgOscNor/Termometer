@@ -39,6 +39,10 @@ var optionsTemp = {
     group: 'social',
     type: 'line',
     height: 250,
+    dynamicAnimation: {
+      enabled: true,
+      speed: 350
+    }
   },
   stroke:{
     curve: "smooth"
@@ -64,7 +68,10 @@ var optionsHum = {
   group: 'social',
   type: 'line',
   height: 250,
- 
+  dynamicAnimation: {
+    enabled: true,
+    speed: 350
+  }
 },
 stroke:{
   curve: "smooth"
@@ -203,10 +210,12 @@ function findLatestData(value, currentTime, xAxisLength) {
   const maxIterations = 10000;
   let iterationCount = 0;
   let { year, month, day, hour, minute, second } = currentTime;
+  let foundHum = false
+  let foundTemp = false
 
   // Clear existing arrays
-  tempArray = [];
-  humArray = [];
+  
+  
   
 
   while (tempArray.length < xAxisLength && iterationCount < maxIterations) {
@@ -217,17 +226,21 @@ function findLatestData(value, currentTime, xAxisLength) {
         function processData(data) {
           // Humidity processing
           if (data.humIrr !== undefined && !isNaN(data.humIrr)) {
+            if (foundHum === false){humArray = []; foundHum = true}
             humArray.unshift(Math.round(data.humIrr));
           }
           else if (data.humAvg !== undefined && !isNaN(data.humAvg)) {
+            if (foundHum === false){humArray = []; foundHum = true}
             humArray.unshift(Math.round(data.humAvg));
           }
 
           // Temperature processing
           if (data.tempIrr !== undefined && !isNaN(data.tempIrr)) {
+            if (foundTemp === false){tempArray = []; foundTemp = true}
             tempArray.unshift(Math.round(data.tempIrr));
           }
           else if (data.tempAvg !== undefined && !isNaN(data.tempAvg)) {
+            if (foundTemp === false){tempArray = []; foundTemp = true}
             tempArray.unshift(Math.round(data.tempAvg));
           }
 
@@ -302,12 +315,13 @@ onValue(dbSensorRef, (snapshot) => {
   humArray = result.humArray;
   timestampArray = result.timestampArray;
 
+  document.getElementById("currentHum").innerHTML = "Current humidity: " + humArray[humArray.length - 1] + "%"
+  document.getElementById("currentTemp").innerHTML = "Current tempature: " + tempArray[tempArray.length - 1] + "&deg;C"
+
   // Ensure charts are rendered and data is complete
   if (firstFetch === true && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     chart.render();
     chartLine2.render();
-    
-
     humComboChart.render();
     tempComboChart.render();
     hasBeenRenderd = true;

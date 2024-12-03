@@ -7,10 +7,41 @@ body {
     background-position: center; /* Positionerar bilden centrerat */
 }
 
+div {
+    
+}
+
+.currentValue {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    flex-wrap: wrap;
+    margin-left: 4%;
+    margin-bottom: 20px;
+}
+
+.currentValueTemp{
+    backdrop-filter: blur(50px);
+    padding: 2%;
+    margin: 1%;
+    border-radius: 20px;
+    box-shadow: inset 0px 0px 5px 5px #ff7713;
+
+}
+.currentValueHum {
+    backdrop-filter: blur(50px);
+    padding: 2%;
+    margin: 1%;
+    border-radius: 20px;
+    box-shadow: inset 0px 0px 5px 5px #008ffb;
+}
+
 .currentChart{
     backdrop-filter: blur(50px);
     padding: 2%;
-    margin: 5%;
+    margin-left: 5%;
+    margin-bottom: 5%;
+    margin-right: 5%;
     border-radius: 20px;
     box-shadow: inset 0px 0px 5px 5px #0b0514;
     height: 100%;
@@ -24,15 +55,14 @@ body {
     box-shadow: inset 0px 0px 5px 5px #0b0514;
     display: flex;
     flex-direction: row;
-    /* justify-content: space-around; /* För att sprida ut diagrammen jämnt */
-    /* align-content: stretch; */
-    gap: 2%; /* Jämnt mellanrum mellan diagrammen */
+    flex-wrap: wrap;
+    gap: 2%;
     align-items: center;
 }
 
 .past {
     flex-grow: 1;
-    align-self: center;
-    margin: 0 2%; /* Justerar mellanrum från kanterna */
+    margin: 1%; /* Justerar mellanrum från kanterna */
     max-width: 45%; /* Ser till att varje diagram inte tar för mycket plats */
 }
+

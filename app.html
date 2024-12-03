@@ -2,7 +2,7 @@
 <html lang="en">
 <html>
     <head>
-        <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+        <link rel="icon" type="image/x-icon" href="">
         <title>En väldigt proffsig sida</title>
         <link rel="stylesheet" href="app.css">
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -13,14 +13,14 @@
         
     </head>
 
-    <body background="">
-        <div>
-            <div id="currentTemp"></div>
-            <div id="currentHum"></div>
+    <body>
+        <div class="currentValue">
+            <div id="currentTemp" class="currentValueTemp"></div>
+            <div id="currentHum" class="currentValueHum"></div>
         </div>
         <div>
             <div id="temp"></div>
-            <div id="hum" style="padding: 20px;"></div>
+            <div id="hum"></div>
         </div>
         <div>
             <div class="currentChart">
@@ -33,8 +33,6 @@
             </div>
         </div>
          
-        <!-- Script -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
         <script src="app.js" type="module"></script>
     </body>
 </html>
