@@ -20,9 +20,9 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
 const dbRootRef = ref(db, "/")
-const xAxisLength = 60
-let tempArray = []
-let humArray = []
+const xAxisLength = 100
+let tempArray = [null]
+let humArray = [0]
 let datestampArray = [];
 let timestampArray = [];
 let hasBeenRenderd = false
@@ -159,6 +159,7 @@ let currentTime = { year, month, day, hour, minute, second };
 console.log(currentTime)
 return currentTime
 }
+
 function updateCharts() {
 
   chart.updateSeries([{data: tempArray}]);
@@ -166,8 +167,6 @@ function updateCharts() {
   console.log("has updated charts")
 }
 
-
-// Make sure this function is defined similarly to your original
 function decrementTime(currentTime) {
   let { year, month, day, hour, minute, second } = currentTime;
 
@@ -199,6 +198,7 @@ function decrementTime(currentTime) {
 
   return { year, month, day, hour, minute, second };
 }
+
 function findLatestData(value, currentTime, xAxisLength) {
   const maxIterations = 10000;
   let iterationCount = 0;
@@ -207,7 +207,7 @@ function findLatestData(value, currentTime, xAxisLength) {
   // Clear existing arrays
   tempArray = [];
   humArray = [];
-  timestampArray = []; // Clear timestamp array explicitly
+  
 
   while (tempArray.length < xAxisLength && iterationCount < maxIterations) {
     try {
@@ -231,6 +231,34 @@ function findLatestData(value, currentTime, xAxisLength) {
             tempArray.unshift(Math.round(data.tempAvg));
           }
 
+          while(tempArray.length < humArray.length){
+            if (firstFetch === true) {
+              tempArray.unshift(tempArray[0])
+            }
+            else {
+              tempArray.push(tempArray[tempArray.length - 1])
+            }
+          }
+          if (data.humIrr === undefined && data.humAvg === undefined) {
+            while(humArray.length < tempArray.length){
+              if (firstFetch === true) {
+                if (!isNaN(humArray[0])) {
+                  humArray.unshift(humArray[0])
+                }
+                else{
+                  humArray.unshift(null)
+                }
+              }
+              else {
+                if (!isNaN(humArray[humArray.length - 1])) {
+                  humArray.push(humArray[humArray.length - 1])
+                }
+                else{
+                  humArray.push(null)
+                }
+              }
+            }
+          }
           // Timestamp processing - format as HH:MM:SS
           const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
           timestampArray.unshift(formattedTime);
@@ -243,9 +271,11 @@ function findLatestData(value, currentTime, xAxisLength) {
     }
 
     // Decrement time
+    
     ({ year, month, day, hour, minute, second } = decrementTime({ 
       year, month, day, hour, minute, second 
     }));
+    
 
     iterationCount++;
   }
@@ -265,7 +295,7 @@ function findLatestData(value, currentTime, xAxisLength) {
 
 onValue(dbSensorRef, (snapshot) => {
   const value = snapshot.val();
-
+  console.log("rawData", value)
   const result = findLatestData(value, getTime(), xAxisLength);
   
   tempArray = result.tempArray;
@@ -273,16 +303,18 @@ onValue(dbSensorRef, (snapshot) => {
   timestampArray = result.timestampArray;
 
   // Ensure charts are rendered and data is complete
-  if (hasBeenRenderd === false && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
-    chartLine2.render();
+  if (firstFetch === true && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     chart.render();
+    chartLine2.render();
+    
+
     humComboChart.render();
     tempComboChart.render();
     hasBeenRenderd = true;
     updateCharts();
     firstFetch = false;
   }
-  else if (firstFetch === false) {
+  else if (firstFetch === false && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     updateCharts();
   }
 
