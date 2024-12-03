@@ -48,7 +48,7 @@ enum class DataType{
   DebugOnline
 };
 
-NTPClient timeClient(ntpUDP, "pool.ntp.org");
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600);
 FirebaseData firebaseData;
 
 void wifiSetup(){
@@ -100,85 +100,75 @@ void setup(){
 }
 
 void firebaseUploadData(float data, DataType dataType){
-  if(dataType == DataType::Hum){
+  timeClient.update();
+  unsigned long epochTime = timeClient.getEpochTime();
+  struct tm *ptm = gmtime((time_t *)&epochTime);
 
-  }
-  else if(dataType == DataType::Temp){
-    if (Firebase.setInt(firebaseData, "/sensor/temp", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-  else if(dataType == DataType::Hum){
-    if (Firebase.setInt(firebaseData, "/sensor/"+ std::string(currentDate) +"/hum", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-  else if(dataType == DataType::TempAvg){
-    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/tempAvg", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-    else if(dataType == DataType::HumAvg){
-    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/humAvg", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-  else if(dataType == DataType::HumIrr){
-    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/humIrr", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-  else if(dataType == DataType::TempIrr){
-    if (Firebase.setInt(firebaseData, "/sensor/" + std::string(currentDate) + "/tempIrr", data))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
-  }
-    else if(dataType == DataType::DebugOnline){
-    if (Firebase.setInt(firebaseData, "/debug/online", true))
-    {
-      Serial.println("Data skickat till Firebase");
-    }
-    else
-    {
-      Serial.print("Failed to send data: ");
-      Serial.println(firebaseData.errorReason());
-    }
+  String currentDate = String(ptm->tm_year + 1900) + "/" + 
+                       String(ptm->tm_mon + 1) + "/" + 
+                       String(ptm->tm_mday) + "/" + 
+                       String(timeClient.getHours()) + "/" + 
+                       String(timeClient.getMinutes()) + "/" + 
+                       String(timeClient.getSeconds());
+
+
+  switch(dataType) {
+    case DataType::Temp:
+      if (Firebase.setInt(firebaseData, "/sensor/temp", data)) {
+        Serial.println("Temp data sent to Firebase");
+      } else {
+        Serial.print("Failed to send temp data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::Hum:
+      if (Firebase.setInt(firebaseData, "/sensor/" + currentDate + "/hum", data)) {
+        Serial.println("Humidity data sent to Firebase");
+      } else {
+        Serial.print("Failed to send humidity data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::TempAvg:
+      if (Firebase.setInt(firebaseData, "/sensor/" + currentDate + "/tempAvg", data)) {
+        Serial.println("Average temp data sent to Firebase");
+      } else {
+        Serial.print("Failed to send average temp data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::HumAvg:
+      if (Firebase.setInt(firebaseData, "/sensor/" + currentDate + "/humAvg", data)) {
+        Serial.println("Average humidity data sent to Firebase");
+      } else {
+        Serial.print("Failed to send average humidity data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::HumIrr:
+      if (Firebase.setInt(firebaseData, "/sensor/" + currentDate + "/humIrr", data)) {
+        Serial.println("Irregular humidity data sent to Firebase");
+      } else {
+        Serial.print("Failed to send irregular humidity data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::TempIrr:
+      if (Firebase.setInt(firebaseData, "/sensor/" + currentDate + "/tempIrr", data)) {
+        Serial.println("Irregular temp data sent to Firebase");
+      } else {
+        Serial.print("Failed to send irregular temp data: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
+    case DataType::DebugOnline:
+      if (Firebase.setBool(firebaseData, "/debug/online", true)) {
+        Serial.println("Debug online status sent to Firebase");
+      } else {
+        Serial.print("Failed to send debug online status: ");
+        Serial.println(firebaseData.errorReason());
+      }
+      break;
   }
 }
 
@@ -338,7 +328,7 @@ bool checkForIrregularValue(const float list[NUM_SAMPLES], const float otherValu
 }
 
 void loop(){
-  updateTime();
+  
   getTemp();
   getHum();
   displayValue();
@@ -349,6 +339,7 @@ void loop(){
   if(checkForIrregularValue(TempArray, calculateAverage(NUM_SAMPLES, TempArray), DataType::Temp) == true){
     firebaseUploadData(Temp, DataType::TempIrr);
   }
+  
   if(checkForIrregularValue(HumArray, calculateAverage(NUM_SAMPLES, HumArray), DataType::Hum) == true){
     firebaseUploadData(Hum, DataType::HumIrr);
   }
@@ -362,10 +353,8 @@ void loop(){
       a++;
     }
   }
-  Serial.println();
 
   firebaseUploadData(true, DataType::DebugOnline);
   delay(10000);
 }
-
 // :3

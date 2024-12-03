@@ -6,3 +6,33 @@ body {
     background-attachment: fixed; /* Gör så att bilden stannar vid scroll */
     background-position: center; /* Positionerar bilden centrerat */
 }
+
+.currentChart{
+    backdrop-filter: blur(50px);
+    padding: 2%;
+    margin: 5%;
+    border-radius: 20px;
+    box-shadow: inset 0px 0px 5px 5px #0b0514;
+    height: 100%;
+}
+
+.pastChart {
+    backdrop-filter: blur(50px);
+    padding: 2%;
+    margin: 5%;
+    border-radius: 20px;
+    box-shadow: inset 0px 0px 5px 5px #0b0514;
+    display: flex;
+    flex-direction: row;
+    /* justify-content: space-around; /* För att sprida ut diagrammen jämnt */
+    /* align-content: stretch; */
+    gap: 2%; /* Jämnt mellanrum mellan diagrammen */
+    align-items: center;
+}
+
+.past {
+    flex-grow: 1;
+    align-self: center;
+    margin: 0 2%; /* Justerar mellanrum från kanterna */
+    max-width: 45%; /* Ser till att varje diagram inte tar för mycket plats */
+}
