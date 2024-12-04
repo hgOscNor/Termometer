@@ -20,9 +20,9 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
 const dbRootRef = ref(db, "/")
-const xAxisLength = 100
+const xAxisLength = 200
 let tempArray = [null]
-let humArray = [0]
+let humArray = [null]
 let datestampArray = [];
 let timestampArray = [];
 let hasBeenRenderd = false
@@ -34,10 +34,10 @@ const randomArray3 = Array.from({ length: 25 }, () => Math.floor(Math.random() *
 console.log(randomArray)
 var optionsTemp = {
   chart: {
-    type: 'line',
+    type: 'area',
     id: 'fb',
     group: 'social',
-    type: 'line',
+    // type: 'line',
     height: 250,
     dynamicAnimation: {
       enabled: true,
@@ -46,6 +46,9 @@ var optionsTemp = {
   },
   stroke:{
     curve: "smooth"
+  },
+  dataLabels: {
+    enabled: false
   },
   series: [{
     data: tempArray,
@@ -66,7 +69,7 @@ var optionsHum = {
   chart: {
   id: 'tw',
   group: 'social',
-  type: 'line',
+  type: 'area',
   height: 250,
   dynamicAnimation: {
     enabled: true,
@@ -75,6 +78,9 @@ var optionsHum = {
 },
 stroke:{
   curve: "smooth"
+},
+dataLabels: {
+  enabled: false
 },
 series: [{
   data: humArray,
@@ -207,16 +213,12 @@ function decrementTime(currentTime) {
 }
 
 function findLatestData(value, currentTime, xAxisLength) {
-  const maxIterations = 10000;
+  const maxIterations = 100000;
   let iterationCount = 0;
   let { year, month, day, hour, minute, second } = currentTime;
   let foundHum = false
   let foundTemp = false
 
-  // Clear existing arrays
-  
-  
-  
 
   while (tempArray.length < xAxisLength && iterationCount < maxIterations) {
     try {
@@ -225,21 +227,21 @@ function findLatestData(value, currentTime, xAxisLength) {
       if (dataAtTimestamp) {
         function processData(data) {
           // Humidity processing
-          if (data.humIrr !== undefined && !isNaN(data.humIrr)) {
+          if (!isNaN(data.humIrr)) {
             if (foundHum === false){humArray = []; foundHum = true}
             humArray.unshift(Math.round(data.humIrr));
           }
-          else if (data.humAvg !== undefined && !isNaN(data.humAvg)) {
+          else if (!isNaN(data.humAvg)) {
             if (foundHum === false){humArray = []; foundHum = true}
             humArray.unshift(Math.round(data.humAvg));
           }
 
           // Temperature processing
-          if (data.tempIrr !== undefined && !isNaN(data.tempIrr)) {
+          if (!isNaN(data.tempIrr)) {
             if (foundTemp === false){tempArray = []; foundTemp = true}
             tempArray.unshift(Math.round(data.tempIrr));
           }
-          else if (data.tempAvg !== undefined && !isNaN(data.tempAvg)) {
+          else if (!isNaN(data.tempAvg)) {
             if (foundTemp === false){tempArray = []; foundTemp = true}
             tempArray.unshift(Math.round(data.tempAvg));
           }
@@ -331,142 +333,4 @@ onValue(dbSensorRef, (snapshot) => {
   else if (firstFetch === false && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     updateCharts();
   }
-
-  
-
-  
-  // let firstTimestamp = new Date(datestampArray[0])
-  // for (let i = 1; i < 20; i++) {
-  //   console.log("enterd for loop" + firstTimestamp)
-    
-  //     function decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year) {
-
-  //       // Minska sekunden
-  //       second--;
-  //       if (second < 0) {
-  //         second = 59;
-  //         minute--;
-  //       }
-    
-  //       // Minska minuten
-  //       if (minute < 0) {
-  //         minute = 59;
-  //         hour--;
-  //       }
-    
-  //       // Minska timmen
-  //       if (hour < 0) {
-  //         hour = 23;
-  //       }
-  //       // console.log("year:" + year + " month:" + month + " day:" + day + " hour:" + hour + " minute:" + minute + " second:" + second)
-  //       return { year, month, day, hour, minute, second };
-  //     }
-  //     function findAndUploadHistoryData(value, firstTimestamp) {
-  //       const dataArray = [];
-  //       const maxHistoryIterations = 86399
-  //       let iterationCount = 0;
-  //       let historyHumArray = []
-  //       let historyTempArray = []
-  //       let second = 59
-  //       let minute = 59 
-  //       let hour = 23
-  //       let day = firstTimestamp.getDate() - 1
-  //       console.log("test day " + firstTimestamp.getDate())
-  //       let month = firstTimestamp.getMonth() + 1
-  //       let year = firstTimestamp.getFullYear()
-    
-  //       while (iterationCount < maxHistoryIterations) {
-          
-    
-  //         // Kontrollera om data finns på denna tidpunkt
-  //         if (
-  //           value[year] &&
-  //           value[year][month] &&
-  //           value[year][month][day] &&
-  //           value[year][month][day][hour] &&
-  //           value[year][month][day][hour][minute] &&
-  //           value[year][month][day][hour][minute][second] !== undefined) {
-  //           // console.log("found data at", value[year][month][day][hour][minute][second])
-  //           // Hämta data och tidsstämpel
-  //           const data = value[year][month][day][hour][minute][second];
-  //           const timestamp = `${year}-${month.toString().padStart(2, '0')}-${day
-  //             .toString()
-  //             .padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute
-  //             .toString()
-  //             .padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
-    
-  //           // Lägg till i arrayerna
-  //           function historyValueToString(data){
-  //             if (data.humAvg !== undefined) {
-  //               historyHumArray.push(Math.round(data.humAvg))
-  //               // console.log(humArray, "history %");
-  //             }
-  //             if (data.humIrr !== undefined) {
-  //               historyHumArray.push(Math.round(data.humIrr))
-  //               // console.log(humArray, "history % irr");
-  //             }
-  //             if (data.tempAvg !== undefined) {
-  //               historyTempArray.push(Math.round(data.tempAvg))
-    
-  //               // console.log(tempArray, "history C");
-  //             }
-  //             if (data.tempIrr !== undefined) {
-  //               historyTempArray.push(Math.round(data.tempIrr))
-    
-  //               // console.log(tempArray, "history C irr");
-  //             }
-  //           }
-  //           historyValueToString(data);
-  //           dataArray.unshift(data);
-  //           // console.log(data)
-  //           historyDatestampArray.unshift(timestamp.slice(0, 10));
-  //         }
-    
-  //         // Gå bakåt i tiden
-
-  //         //Här är felet
-  //         ({ year, month, day, hour, minute, second } = decrementTimeInHistory(firstTimestamp, second, minute, hour, day, month, year));
-  //         iterationCount++;
-  //       }
-  //       function historyArraysUpload(historyDatestampArray, historyHumArray, historyTempArray){
-  //         console.log("has enterd upload")
-  //         const historyRef = ref(db, `history/${historyDatestampArray[historyDatestampArray.length - i]}`)
-  //         console.log("has found path ", historyDatestampArray[historyDatestampArray.length - i])
-  //         let averageHum  = 0
-  //         let averageTemp = 0
-
-  //         historyHumArray.sort(function(a, b){return a - b})
-  //         const highestHum  = historyHumArray[historyHumArray.length - 1]
-  //         const lowestHum = historyHumArray[0]
-  //         console.log(highestHum + " h hum ", lowestHum + " l hum")
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/highestHum"), highestHum);
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/lowestHum"), lowestHum);
-
-          
-
-  //         historyTempArray.sort(function(a, b){return a - b})
-  //         const highestTemp = historyTempArray[historyTempArray.length - 1]
-  //         const lowestTemp = historyTempArray[0]
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/highestTemp"), highestTemp)
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/lowestTemp"), lowestTemp)
-
-  //         for(let l = 0; l < historyHumArray.length; l++){
-  //           averageHum  = averageHum  + historyHumArray[l]
-  //         }
-  //         averageHum  = averageHum  / historyHumArray.length
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/averageHum"), Math.round(averageHum))
-
-  //         for(let l = 0; l < historyTempArray.length; l++){
-  //           averageTemp = averageTemp + historyTempArray[l]
-  //         }
-  //         averageTemp = averageTemp / historyTempArray.length
-  //         set(ref(db, "history/" + historyDatestampArray[historyDatestampArray.length - 1].toString() + "/avregeTemp"), Math.round(averageTemp))
-  //       }
-  //       if (iterationCount >= maxHistoryIterations) {
-  //         historyArraysUpload(historyDatestampArray, historyHumArray, historyTempArray)
-  //       }
-  //       console.log(iterationCount)
-  //     }
-  //     findAndUploadHistoryData(value, firstTimestamp)
-  //   }
 })
