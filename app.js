@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getDatabase, onValue, ref, child, push, update, onChildAdded, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, onValue, ref, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 
 
@@ -19,29 +19,34 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
-const dbRootRef = ref(db, "/")
+const dbHistoryRef = ref(db, "dailySummary")
 const xAxisLength = 200
 let tempArray = [null]
 let humArray = [null]
+let humAvgArray = []
+let humHighArray = []
+let humLowArray = []
+let tempAvgArray = []
+let tempHighArray = []
+let tempLowArray = []
 let datestampArray = [];
 let timestampArray = [];
+let historyDatesArray = []
 let hasBeenRenderd = false
 let firstFetch = true
-let timestamps = []
-const randomArray = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
-const randomArray2 = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
-const randomArray3 = Array.from({ length: 25 }, () => Math.floor(Math.random() * 100) + 1);
-console.log(randomArray)
+
 var optionsTemp = {
   chart: {
     type: 'area',
     id: 'fb',
-    group: 'social',
-    // type: 'line',
+    group: 'live',
     height: 250,
     dynamicAnimation: {
       enabled: true,
       speed: 350
+    },
+    zoom: {
+      allowMouseWheelZoom: false, 
     }
   },
   stroke:{
@@ -68,12 +73,15 @@ var optionsTemp = {
 var optionsHum = {
   chart: {
   id: 'tw',
-  group: 'social',
+  group: 'live',
   type: 'area',
   height: 250,
   dynamicAnimation: {
     enabled: true,
     speed: 350
+  },
+  zoom: {
+    allowMouseWheelZoom: false, 
   }
 },
 stroke:{
@@ -98,20 +106,26 @@ xaxis: {
 var optionsHumCombo = {
   series: [{
     name: "Highest",
-    type: "column",
-    data: randomArray
+    type: "line",
+    data: humHighArray
   },{
     name: "Lowest",
-    type: "column",
-    data: randomArray2
+    type: "line",
+    data: humLowArray
   },{
     name: "Avreage",
     type: "line",
-    data: randomArray3,
+    data: humAvgArray,
   }],
+  
     chart: {
       type: "line",
       height: 250,
+      group: "past",
+      id: "humPast",
+      zoom: {
+        allowMouseWheelZoom: false, 
+      }
     },
   stroke: {
     width: [0, 4],
@@ -123,25 +137,40 @@ var optionsHumCombo = {
     curve: "smooth"
   },
   colors:['#F44336', '#E91E63', '#9C27B0'],
+  xaxis: {
+    categories: historyDatesArray,
+    type: "dateTime",
+  },
+  fill: {
+    opacity: 1
+  }
 
 }
 var optionsTempCombo = {
   series: [{
     name: "Highest",
-    type: "column",
-    data: randomArray2
+    type: "line",
+    data: tempHighArray
   },{
     name: "Lowest",
-    type: "column",
-    data: randomArray3
+    type: "line",
+    data: tempLowArray
   },{
     name: "Avreage",
     type: "line",
-    data: randomArray,
+    data: tempAvgArray
   }],
+  yaxis: {
+    
+  },
     chart: {
       type: "line",
       height: 250,
+      group: "past",
+      id: "tempPast",
+      zoom: {
+        allowMouseWheelZoom: false, 
+      },
     },
   stroke: {
     width: [0, 4],
@@ -152,8 +181,16 @@ var optionsTempCombo = {
   stroke:{
     curve: "smooth"
   },
-  
+  xaxis: {
+    categories: historyDatesArray,
+    type: "dateTime",
+  },
+  fill: {
+    opacity: 1
+  },
+  colors:["#ff3300", "#3399ff", "#ff7713"]
 }
+
 var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsHum);
 var chart = new ApexCharts(document.querySelector("#chart"), optionsTemp);
 var humComboChart = new ApexCharts(document.querySelector("#humComboChart"), optionsHumCombo);
@@ -173,7 +210,7 @@ console.log(currentTime)
 return currentTime
 }
 
-function updateCharts() {
+function updateCurrentCharts() {
 
   chart.updateSeries([{data: tempArray}]);
   chartLine2.updateSeries([{ data: humArray }]);
@@ -308,9 +345,134 @@ function findLatestData(value, currentTime, xAxisLength) {
   };
 }
 
+function calculateDailySummary(tempArray, humArray) {
+  // Filter out null values
+  const validTemp = tempArray.filter(temp => temp !== null);
+  const validHum = humArray.filter(hum => hum !== null);
+
+  // Calculate summary statistics
+  const dailySummary = {
+    temperature: {
+      average: validTemp.length > 0 
+        ? Math.round(validTemp.reduce((a, b) => a + b, 0) / validTemp.length) 
+        : null,
+      lowest: validTemp.length > 0 
+        ? Math.min(...validTemp) 
+        : null,
+      highest: validTemp.length > 0 
+        ? Math.max(...validTemp) 
+        : null
+    },
+    humidity: {
+      average: validHum.length > 0 
+        ? Math.round(validHum.reduce((a, b) => a + b, 0) / validHum.length) 
+        : null,
+      lowest: validHum.length > 0 
+        ? Math.min(...validHum) 
+        : null,
+      highest: validHum.length > 0 
+        ? Math.max(...validHum) 
+        : null
+    }
+  };
+
+  return dailySummary;
+}
+
+function saveDailySummaryToFirebase(db, date, summary) {
+  // Create a reference to the daily summary in the database
+  const dailySummaryRef = ref(db, `dailySummary/${date}`);
+
+  // Save the summary
+  set(dailySummaryRef, summary)
+    .then(() => {
+      console.log(`Previous day summary for ${date} saved successfully`);
+    })
+    .catch((error) => {
+      console.error(`Error saving previous day summary for ${date}:`, error);
+    });
+}
+
+function getPreviousDayDate() {
+  // Create a date object for yesterday
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  // Format as YYYY-MM-DD
+  return yesterday.toISOString().split('T')[0];
+}
+
+function collectAndSavePreviousDaySummary(db, tempArray, humArray) {
+  // Get yesterday's date
+  const previousDayDate = getPreviousDayDate();
+
+  // Calculate daily summary
+  const dailySummary = calculateDailySummary(tempArray, humArray);
+
+  // Save to Firebase
+  saveDailySummaryToFirebase(db, previousDayDate, dailySummary);
+}
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+
+onValue(dbHistoryRef, (snapshot) => {
+  const value = snapshot.val();
+  console.log("rawHistoryData", value);
+
+  const { year, month, day } = getTime();
+  const fixedDay = day.toString().padStart(2, "0");
+
+  const currentDate = `${year}-${month.toString().padStart(2, "0")}-${fixedDay}`;
+  const maxIterations = 100;
+  let currentIterations = 0;
+
+  let currentDateTime = new Date(currentDate);
+  currentDateTime.setDate(currentDateTime.getDate() - 1); // Start en dag bakåt
+
+  while (currentIterations < maxIterations) {
+    const formattedDate = formatDate(currentDateTime);
+
+    const historicalData = value[formattedDate];
+    if (historicalData) {
+      const dataHum = historicalData["humidity"];
+      const dataTemp = historicalData["temperature"];
+
+      if (dataHum) {
+        if (!isNaN(dataHum.average)) humAvgArray.unshift(dataHum.average);
+        if (!isNaN(dataHum.highest)) humHighArray.unshift(dataHum.highest);
+        if (!isNaN(dataHum.lowest)) humLowArray.unshift(dataHum.lowest);
+      }
+
+      if (dataTemp) {
+        if (!isNaN(dataTemp.average)) tempAvgArray.unshift(dataTemp.average);
+        if (!isNaN(dataTemp.highest)) tempHighArray.unshift(dataTemp.highest);
+        if (!isNaN(dataTemp.lowest)) tempLowArray.unshift(dataTemp.lowest);
+      }
+
+      historyDatesArray.unshift(formattedDate);
+    }
+
+    currentDateTime.setDate(currentDateTime.getDate() - 1); // Gå bakåt en dag
+    currentIterations++;
+  }
+
+  console.log(humAvgArray, humHighArray, humLowArray, "hum");
+  console.log(tempAvgArray, tempHighArray, tempLowArray, "temp");
+
+  humComboChart.render();
+  tempComboChart.render();
+});
+
 onValue(dbSensorRef, (snapshot) => {
   const value = snapshot.val();
-  console.log("rawData", value)
+  console.log("rawSensorData", value)
   const result = findLatestData(value, getTime(), xAxisLength);
   
   tempArray = result.tempArray;
@@ -324,13 +486,13 @@ onValue(dbSensorRef, (snapshot) => {
   if (firstFetch === true && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     chart.render();
     chartLine2.render();
-    humComboChart.render();
-    tempComboChart.render();
+    
     hasBeenRenderd = true;
-    updateCharts();
+    updateCurrentCharts();
+    collectAndSavePreviousDaySummary(db, tempArray, humArray);
     firstFetch = false;
   }
   else if (firstFetch === false && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
-    updateCharts();
+    updateCurrentCharts();
   }
 })
