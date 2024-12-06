@@ -20,6 +20,14 @@ body {
     margin-bottom: 20px;
 }
 
+.about {
+    backdrop-filter: blur(50px);
+    padding: 2%;
+    margin: 1%;
+    border-radius: 20px;
+    box-shadow: inset 0px 0px 5px 5px #0b0514 ;
+}
+
 .currentValueTemp{
     backdrop-filter: blur(50px);
     padding: 2%;
