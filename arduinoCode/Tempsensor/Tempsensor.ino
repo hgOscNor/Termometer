@@ -52,8 +52,10 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 FirebaseData firebaseData;
 
 void wifiSetup(){
-#define STASSID "Hitachigymnasiet_2.4" // ssid
-#define STAPSK "mittwifiarsabra"       // wifi password
+#define STASSID "hemma"
+#define STAPSK "1m0b1tel"
+// #define STASSID "Hitachigymnasiet_2.4" // ssid
+// #define STAPSK "mittwifiarsabra"       // wifi password
 
   Serial.print("Connecting to");
   Serial.print(STASSID);
