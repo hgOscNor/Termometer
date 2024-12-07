@@ -1,18 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, onValue, ref, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-
-
-
 // Your Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCQDevcOGsNzQTy0F63KP5b3DJQOjmH3jk",
-    authDomain: "i-hetaste-laget-ead3c.firebaseapp.com",
-    databaseURL: "https://i-hetaste-laget-ead3c-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "i-hetaste-laget-ead3c",
-    storageBucket: "i-hetaste-laget-ead3c.firebasestorage.app",
-    messagingSenderId: "96796478648",
-    appId: "1:96796478648:web:3ae32b69593d060c97b84d"
+  apiKey: "AIzaSyCQDevcOGsNzQTy0F63KP5b3DJQOjmH3jk",
+  authDomain: "i-hetaste-laget-ead3c.firebaseapp.com",
+  databaseURL: "https://i-hetaste-laget-ead3c-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "i-hetaste-laget-ead3c",
+  storageBucket: "i-hetaste-laget-ead3c.firebasestorage.app",
+  messagingSenderId: "96796478648",
+  appId: "1:96796478648:web:3ae32b69593d060c97b84d"
 };
 
 // Initialize Firebase
@@ -21,19 +18,19 @@ const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
 const dbHistoryRef = ref(db, "dailySummary")
 const xAxisLength = 200
-let tempArray = [null]
-let humArray = [null]
+let tempArray = []
+let humArray = []
 let humAvgArray = []
 let humHighArray = []
 let humLowArray = []
 let tempAvgArray = []
 let tempHighArray = []
 let tempLowArray = []
-let datestampArray = [];
 let timestampArray = [];
 let historyDatesArray = []
-let hasBeenRenderd = false
+let hasBeenRenderd = false // it sais that it is not used anywhere but it is
 let firstFetch = true
+let numberOfUpdates = 0
 
 var optionsTemp = {
   chart: {
@@ -46,10 +43,10 @@ var optionsTemp = {
       speed: 350
     },
     zoom: {
-      allowMouseWheelZoom: false, 
+      allowMouseWheelZoom: false,
     }
   },
-  stroke:{
+  stroke: {
     curve: "smooth"
   },
   dataLabels: {
@@ -64,79 +61,79 @@ var optionsTemp = {
     text: "Tempature"
   },
   xaxis: {
-      categories: timestampArray,
-      type: "dateTime",
+    categories: timestampArray,
+    type: "dateTime",
   },
   colors: ['#ff7713'],
 
 }
 var optionsHum = {
   chart: {
-  id: 'tw',
-  group: 'live',
-  type: 'area',
-  height: 250,
-  dynamicAnimation: {
-    enabled: true,
-    speed: 350
+    id: 'tw',
+    group: 'live',
+    type: 'area',
+    height: 250,
+    dynamicAnimation: {
+      enabled: true,
+      speed: 350
+    },
+    zoom: {
+      allowMouseWheelZoom: false,
+    }
   },
-  zoom: {
-    allowMouseWheelZoom: false, 
-  }
-},
-stroke:{
-  curve: "smooth"
-},
-dataLabels: {
-  enabled: false
-},
-series: [{
-  data: humArray,
-  name: 'Hum',
+  stroke: {
+    curve: "smooth"
+  },
+  dataLabels: {
+    enabled: false
+  },
+  series: [{
+    data: humArray,
+    name: 'Hum',
 
-}],
-title: {
-  text: "Humidity"
-},
-xaxis: {
-  categories: timestampArray,
-  type: "dateTime",
-}
+  }],
+  title: {
+    text: "Humidity"
+  },
+  xaxis: {
+    categories: timestampArray,
+    type: "dateTime",
+  }
 };
 var optionsHumCombo = {
   series: [{
     name: "Highest",
     type: "line",
     data: humHighArray
-  },{
+  }, {
     name: "Lowest",
     type: "line",
     data: humLowArray
-  },{
+  }, {
     name: "Avreage",
     type: "line",
     data: humAvgArray,
   }],
-  
-    chart: {
-      type: "line",
-      height: 250,
-      group: "past",
-      id: "humPast",
-      zoom: {
-        allowMouseWheelZoom: false, 
-      }
-    },
+
+  chart: {
+    type: "line",
+    height: 250,
+    group: "past",
+    id: "humPast",
+    zoom: {
+      allowMouseWheelZoom: false,
+    }
+  },
   stroke: {
     width: [0, 4],
   },
   title: {
     text: "Humidity's past"
   },
-  stroke:{
+  stroke: {
     curve: "smooth"
   },
-  colors:['#F44336', '#E91E63', '#9C27B0'],
+  colors: ['#0a0d76', '#66ccff', '#0099cc'],
   xaxis: {
     categories: historyDatesArray,
     type: "dateTime",
@@ -151,34 +148,34 @@ var optionsTempCombo = {
     name: "Highest",
     type: "line",
     data: tempHighArray
-  },{
+  }, {
     name: "Lowest",
     type: "line",
     data: tempLowArray
-  },{
+  }, {
     name: "Avreage",
     type: "line",
     data: tempAvgArray
   }],
   yaxis: {
-    
+
   },
-    chart: {
-      type: "line",
-      height: 250,
-      group: "past",
-      id: "tempPast",
-      zoom: {
-        allowMouseWheelZoom: false, 
-      },
+  chart: {
+    type: "line",
+    height: 250,
+    group: "past",
+    id: "tempPast",
+    zoom: {
+      allowMouseWheelZoom: false,
     },
+  },
   stroke: {
     width: [0, 4],
   },
   title: {
     text: "Tempature's past"
   },
-  stroke:{
+  stroke: {
     curve: "smooth"
   },
   xaxis: {
@@ -188,7 +185,7 @@ var optionsTempCombo = {
   fill: {
     opacity: 1
   },
-  colors:["#ff3300", "#3399ff", "#ff7713"]
+  colors: ["#ff3300", "#3399ff", "#ff7713"]
 }
 
 var chartLine2 = new ApexCharts(document.querySelector("#chart-line2"), optionsHum);
@@ -197,23 +194,39 @@ var humComboChart = new ApexCharts(document.querySelector("#humComboChart"), opt
 var tempComboChart = new ApexCharts(document.querySelector("#tempComboChart"), optionsTempCombo);
 
 
-function getTime(){
-let now = new Date();
-let year = now.getFullYear();
-let month = now.getMonth() + 1;
-let day = now.getDate();
-let hour = now.getHours();
-let minute = now.getMinutes();
-let second = now.getSeconds();
-let currentTime = { year, month, day, hour, minute, second };
-console.log(currentTime)
-return currentTime
+function getTime() {
+  let now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1;
+  let day = now.getDate();
+  let hour = now.getHours();
+  let minute = now.getMinutes();
+  let second = now.getSeconds();
+  let currentTime = { year, month, day, hour, minute, second };
+  console.log(currentTime)
+  return currentTime
 }
 
 function updateCurrentCharts() {
+  let tempData = []
+  let humData = []
+  let i = 0
+  let l = 0
 
-  chart.updateSeries([{data: tempArray}]);
-  chartLine2.updateSeries([{ data: humArray }]);
+  while (tempData.length < xAxisLength) {
+    tempData.push({x: timestampArray[i], y: tempArray[i]})
+    i++
+  }
+
+  while (humData.length < xAxisLength){
+    humData.push({x: timestampArray[l], y: humArray[l]})
+    l++
+  }
+  chart.updateSeries([{ data: tempData}]);
+  chartLine2.updateSeries([{ data: humData }]);
+  console.log(humArray, "%")
+  console.log(tempArray, "C")
+  console.log(timestampArray)
   console.log("has updated charts")
 }
 
@@ -257,47 +270,49 @@ function findLatestData(value, currentTime, xAxisLength) {
   let foundTemp = false
 
 
-  while (tempArray.length < xAxisLength && iterationCount < maxIterations) {
+  while (tempArray.length - numberOfUpdates < xAxisLength && iterationCount < maxIterations) {
     try {
       const dataAtTimestamp = value?.[year]?.[month]?.[day]?.[hour]?.[minute]?.[second];
-      
+
       if (dataAtTimestamp) {
         function processData(data) {
           // Humidity processing
           if (!isNaN(data.humIrr)) {
-            if (foundHum === false){humArray = []; foundHum = true}
+            if (foundHum === false) { humArray = []; foundHum = true }
             humArray.unshift(Math.round(data.humIrr));
           }
           else if (!isNaN(data.humAvg)) {
-            if (foundHum === false){humArray = []; foundHum = true}
+            if (foundHum === false) { humArray = []; foundHum = true }
             humArray.unshift(Math.round(data.humAvg));
           }
 
           // Temperature processing
           if (!isNaN(data.tempIrr)) {
-            if (foundTemp === false){tempArray = []; foundTemp = true}
+            if (foundTemp === false) { tempArray = []; foundTemp = true }
             tempArray.unshift(Math.round(data.tempIrr));
           }
           else if (!isNaN(data.tempAvg)) {
-            if (foundTemp === false){tempArray = []; foundTemp = true}
+            if (foundTemp === false) { tempArray = []; foundTemp = true }
             tempArray.unshift(Math.round(data.tempAvg));
           }
 
-          while(tempArray.length < humArray.length){
-            if (firstFetch === true) {
-              tempArray.unshift(tempArray[0])
-            }
-            else {
-              tempArray.push(tempArray[tempArray.length - 1])
+          if (data.tempIrr === undefined && data.tempAvg === undefined) {
+            while (tempArray.length < humArray.length) {
+              if (firstFetch === true) {
+                tempArray.unshift(tempArray[0])
+              }
+              else {
+                tempArray.push(tempArray[tempArray.length - 1])
+              }
             }
           }
           if (data.humIrr === undefined && data.humAvg === undefined) {
-            while(humArray.length < tempArray.length){
+            while (humArray.length < tempArray.length) {
               if (firstFetch === true) {
                 if (!isNaN(humArray[0])) {
                   humArray.unshift(humArray[0])
                 }
-                else{
+                else {
                   humArray.unshift(null)
                 }
               }
@@ -305,7 +320,7 @@ function findLatestData(value, currentTime, xAxisLength) {
                 if (!isNaN(humArray[humArray.length - 1])) {
                   humArray.push(humArray[humArray.length - 1])
                 }
-                else{
+                else {
                   humArray.push(null)
                 }
               }
@@ -323,11 +338,11 @@ function findLatestData(value, currentTime, xAxisLength) {
     }
 
     // Decrement time
-    
-    ({ year, month, day, hour, minute, second } = decrementTime({ 
-      year, month, day, hour, minute, second 
+
+    ({ year, month, day, hour, minute, second } = decrementTime({
+      year, month, day, hour, minute, second
     }));
-    
+
 
     iterationCount++;
   }
@@ -336,11 +351,12 @@ function findLatestData(value, currentTime, xAxisLength) {
   tempArray = tempArray.slice(0, xAxisLength);
   humArray = humArray.slice(0, xAxisLength);
   timestampArray = timestampArray.slice(0, xAxisLength);
+  numberOfUpdates = 1
 
   console.log(`Processed ${iterationCount} iterations`);
-  return { 
-    tempArray, 
-    humArray, 
+  return {
+    tempArray,
+    humArray,
     timestampArray
   };
 }
@@ -353,25 +369,25 @@ function calculateDailySummary(tempArray, humArray) {
   // Calculate summary statistics
   const dailySummary = {
     temperature: {
-      average: validTemp.length > 0 
-        ? Math.round(validTemp.reduce((a, b) => a + b, 0) / validTemp.length) 
+      average: validTemp.length > 0
+        ? Math.round(validTemp.reduce((a, b) => a + b, 0) / validTemp.length)
         : null,
-      lowest: validTemp.length > 0 
-        ? Math.min(...validTemp) 
+      lowest: validTemp.length > 0
+        ? Math.min(...validTemp)
         : null,
-      highest: validTemp.length > 0 
-        ? Math.max(...validTemp) 
+      highest: validTemp.length > 0
+        ? Math.max(...validTemp)
         : null
     },
     humidity: {
-      average: validHum.length > 0 
-        ? Math.round(validHum.reduce((a, b) => a + b, 0) / validHum.length) 
+      average: validHum.length > 0
+        ? Math.round(validHum.reduce((a, b) => a + b, 0) / validHum.length)
         : null,
-      lowest: validHum.length > 0 
-        ? Math.min(...validHum) 
+      lowest: validHum.length > 0
+        ? Math.min(...validHum)
         : null,
-      highest: validHum.length > 0 
-        ? Math.max(...validHum) 
+      highest: validHum.length > 0
+        ? Math.max(...validHum)
         : null
     }
   };
@@ -466,15 +482,14 @@ onValue(dbHistoryRef, (snapshot) => {
   console.log(humAvgArray, humHighArray, humLowArray, "hum");
   console.log(tempAvgArray, tempHighArray, tempLowArray, "temp");
 
-  humComboChart.render();
-  tempComboChart.render();
+
 });
 
 onValue(dbSensorRef, (snapshot) => {
   const value = snapshot.val();
   console.log("rawSensorData", value)
   const result = findLatestData(value, getTime(), xAxisLength);
-  
+
   tempArray = result.tempArray;
   humArray = result.humArray;
   timestampArray = result.timestampArray;
@@ -486,7 +501,8 @@ onValue(dbSensorRef, (snapshot) => {
   if (firstFetch === true && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     chart.render();
     chartLine2.render();
-    
+    humComboChart.render();
+    tempComboChart.render();
     hasBeenRenderd = true;
     updateCurrentCharts();
     collectAndSavePreviousDaySummary(db, tempArray, humArray);
