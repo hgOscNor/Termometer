@@ -1,6 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, onValue, ref, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
+window.addEventListener('error', function(event) {
+  console.error('Unhandled error:', event.error)
+})
+
 // Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCQDevcOGsNzQTy0F63KP5b3DJQOjmH3jk",
@@ -17,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
 const dbHistoryRef = ref(db, "dailySummary")
-const xAxisLength = 50
+const xAxisLength = 500
 let tempArray = []
 let humArray = []
 let humAvgArray = []
@@ -255,44 +259,79 @@ function hasValidTempValues(value) {
 function hasValidHumValues(value) {
   return value?.humIrr || value?.humAvg;
 }
+function getLastKnownTempValue(i, depth = 0){
+  if(i<0 || depth > xAxisLength)
+    {return null}
 
-function getTempValue(value) {
-  if(hasValidTempValues(value)){
-    if(value.tempIrr){
-      return value.tempIrr
-    }
-    else{
-      return value.tempAvg
-    }
-  }
-  if (tempArray.length > 0) {
-    return tempArray[tempArray.length -1]
-  }
-  else {
-   return null
-  }
+  let nan = !isNaN(tempArray[i])
+  let nn = tempArray[i] !== null
+  if(nan && nn)
+    {return tempArray[i]}
+  
+  return getLastKnownTempValue(i-1,  depth + 1)
 }
-function getHumValue(value) {
-  if(hasValidHumValues(value)){
-    if(value.humIrr){
-      return value.humIrr
-    }
-    else{
-      return value.humAvg
-    }
-  }
-  if (humArray.length > 0){
-    return humArray[humArray.length - 1]
-  }
-  else {
+
+function getLastKnownHumValue(i, depth = 0) {
+  if (i < 0 || depth > xAxisLength){
     return null
   }
+  let nan = !isNaN(humArray[i])
+  let nn = humArray[i] !== null
+  if (nan && nn ){
+    return humArray[i]
+  }
+  
+  return getLastKnownHumValue(i - 1, depth + 1)
+}
+
+function getTempValue(value) {
+try {
+    if(hasValidTempValues(value)){
+      if(value.tempIrr){
+        return value.tempIrr
+      }
+      else{
+        return value.tempAvg
+      }
+    }
+    if (tempArray.length > 0) {
+      return getLastKnownTempValue(tempArray.length - 1)
+    }
+    else {
+     return null
+    }
+  }
+  catch (error) {
+    console.error('Error in getTempValue:', error)
+  }
+}
+
+function getHumValue(value) {
+try {
+    if(hasValidHumValues(value)){
+      if(value.humIrr){
+        return value.humIrr
+      }
+      else{
+        return value.humAvg
+      }
+    }
+    if (humArray.length > 0){
+      return getLastKnownHumValue(humArray.length - 1)
+    }
+    else {
+      return null
+    }
+} catch (error) {
+  console.error('Error in getHumValue:', error)
+}
 }
 function findLatestData(value, currentTime, xAxisLength) {
   const maxIterations = 100000;
   let iterationCount = 0;
   let { year, month, day, hour, minute, second } = currentTime;
-
+  let ttValues = []
+  loop:
   while (tempArray.length - numberOfUpdates < xAxisLength && iterationCount < maxIterations) {
 
       const dataAtTimestamp = value?.[year]?.[month]?.[day]?.[hour]?.[minute]?.[second];
@@ -314,26 +353,21 @@ function findLatestData(value, currentTime, xAxisLength) {
         if (timestampArray.length > xAxisLength) {
           timestampArray.shift()
 
-          break;
+          break loop;
         }
       }
     }
       else{ //run at startup
         if (dataAtTimestamp) {
-          if(timestampArray.length>=xAxisLength){ 
-              break
+          if(timestampArray.length >= xAxisLength){ 
+              break loop;
             }
           tempArray.unshift(getTempValue(dataAtTimestamp))
-          if (tempArray.length > xAxisLength) {
-            tempArray.pop()
-          }
           humArray.unshift(getHumValue(dataAtTimestamp))
-          if (humArray.length > xAxisLength) {
-            humArray.pop()
-          }
-          
-          // Timestamp processing - format as HH:MM:SS
           const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
+
+          ttValues.push({ temp: dataAtTimestamp.tempIrr?dataAtTimestamp.tempIrr:dataAtTimestamp.tempAvg, hum: dataAtTimestamp.humIrr?dataAtTimestamp.humIrr:dataAtTimestamp.humAvg, time: formattedTime })
+
           timestampArray.unshift(formattedTime);
           if (timestampArray.length > xAxisLength) {
             timestampArray.pop();
@@ -341,7 +375,6 @@ function findLatestData(value, currentTime, xAxisLength) {
       }
     
 
-    // Decrement time
 
     ({ year, month, day, hour, minute, second } = decrementTime({
       year, month, day, hour, minute, second
@@ -351,6 +384,20 @@ function findLatestData(value, currentTime, xAxisLength) {
     iterationCount++;
   }}
 
+  if(firstFetch===true){
+    iterationCount=0
+    while (iterationCount < maxIterations) {
+
+      const dataAtTimestamp = value?.[year]?.[month]?.[day]?.[hour]?.[minute]?.[second];
+      if(dataAtTimestamp !== undefined && !isNaN(dataAtTimestamp.tempIrr?dataAtTimestamp.tempIrr:dataAtTimestamp.tempAvg)){
+        ttValues.push({ temp: dataAtTimestamp.tempIrr?dataAtTimestamp.tempIrr:dataAtTimestamp.tempAvg, hum: dataAtTimestamp.humIrr?dataAtTimestamp.humIrr:dataAtTimestamp.humAvg, time: formattedTime })
+        break
+      }
+      iterationCount++
+    }
+
+    console.log("allValues", ttValues)
+  }
   numberOfUpdates = 1
 
   console.log(`Processed ${iterationCount} iterations`);
@@ -405,23 +452,20 @@ function saveDailySummaryToFirebase(db, date, summary) {
 }
 
 function getPreviousDayDate() {
-  // Create a date object for yesterday
+
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
-  // Format as YYYY-MM-DD
   return yesterday.toISOString().split('T')[0];
 }
 
 function collectAndSavePreviousDaySummary(db, tempArray, humArray) {
-  // Get yesterday's date
+
   const previousDayDate = getPreviousDayDate();
 
-  // Calculate daily summary
   const dailySummary = calculateDailySummary(tempArray, humArray);
 
-  // Save to Firebase
   saveDailySummaryToFirebase(db, previousDayDate, dailySummary);
 }
 
@@ -489,14 +533,9 @@ onValue(dbSensorRef, (snapshot) => {
   console.log("rawSensorData", value)
   findLatestData(value, getTime(), xAxisLength);
 
-  // tempArray = result.tempArray;
-  // humArray = result.humArray;
-  // timestampArray = result.timestampArray;
-
   document.getElementById("currentHum").innerHTML = "Current humidity: " + humArray[humArray.length - 1] + "%"
   document.getElementById("currentTemp").innerHTML = "Current tempature: " + tempArray[tempArray.length - 1] + "&deg;C"
 
-  // Ensure charts are rendered and data is complete
   if (firstFetch === true && humArray.length === xAxisLength && tempArray.length === xAxisLength) {
     chart.render();
     chartLine2.render();
