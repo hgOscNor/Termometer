@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dbSensorRef = ref(db, "sensor");
 const dbHistoryRef = ref(db, "dailySummary")
-const xAxisLength = 500
+const xAxisLength = 200
 let tempArray = []
 let humArray = []
 let humAvgArray = []
@@ -52,6 +52,7 @@ var optionsTemp = {
   stroke: {
     curve: "smooth"
   },
+  
   dataLabels: {
     enabled: false
   },
@@ -63,11 +64,24 @@ var optionsTemp = {
   title: {
     text: "Tempature"
   },
+  
   xaxis: {
     categories: timestampArray,
     type: "dateTime",
   },
+  yaxis: {
+    decimalsInFloat: 1
+  },
   colors: ['#ff7713'],
+  tooltip: {
+    x: {
+      format: 'dd MMM yyyy HH:mm:ss'
+    },
+    y: {
+      formatter: function (value) {
+        return value + " °C";
+      }
+    }},
 
 }
 var optionsHum = {
@@ -101,7 +115,18 @@ var optionsHum = {
   xaxis: {
     categories: timestampArray,
     type: "dateTime",
-  }
+  },
+  yaxis: {
+    decimalsInFloat: 1
+  },
+  tooltip: {
+    x: {
+      format: 'dd MMM yyyy HH:mm:ss'
+    },
+    y: {
+      formatter: function (value) {
+        return value + " %";
+      }}},
 };
 var optionsHumCombo = {
   series: [{
@@ -141,6 +166,9 @@ var optionsHumCombo = {
     categories: historyDatesArray,
     type: "dateTime",
   },
+  yaxis: {
+    decimalsInFloat: 1
+  },
   fill: {
     opacity: 1
   }
@@ -161,7 +189,7 @@ var optionsTempCombo = {
     data: tempAvgArray
   }],
   yaxis: {
-
+    decimalsInFloat: 1
   },
   chart: {
     type: "line",
