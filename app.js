@@ -355,7 +355,7 @@ try {
 }
 }
 function findLatestData(value, currentTime, xAxisLength) {
-  const maxIterations = 100000;
+  const maxIterations = 10000000;
   let iterationCount = 0;
   let { year, month, day, hour, minute, second } = currentTime;
   let ttValues = []
